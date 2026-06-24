@@ -1,0 +1,6 @@
+{
+  "name": "طلبات فرشوط - دليفري مطاعم وبقالة",
+  "description": "تطبيق متكامل لطلب الوجبات والمواد الغذائية والمشروبات من المطاعم والبقالات والكافيهات مع سلة تسوق ذكية وتتبع مباشر لحالة الطلب.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
