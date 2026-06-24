@@ -1,16 +1,11 @@
 workflows:
-  android-debug:
-    name: Android Debug Workflow
-    max_build_duration: 60
-    environment:
-      node: stable
+  web-build:
+    name: Web Build
+    max_build_duration: 30
     scripts:
       - name: Install dependencies
         script: npm install
-      - name: Build Android
-        script: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Build Web
+        script: npm run build
     artifacts:
-      - android/app/build/outputs/apk/debug/*.apk
+      - dist/  # هذا هو المجلد الذي ينتج عنه البناء عادة في مشاريع Vite
