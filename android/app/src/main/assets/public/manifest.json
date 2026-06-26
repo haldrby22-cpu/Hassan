@@ -1,0 +1,16 @@
+{
+  "short_name": "طلبات فرشوط",
+  "name": "طلبات فرشوط - دليفري مطاعم وبقالة",
+  "icons": [
+    {
+      "src": "/pwa_icon.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#ef4444",
+  "display": "standalone",
+  "orientation": "portrait"
+}

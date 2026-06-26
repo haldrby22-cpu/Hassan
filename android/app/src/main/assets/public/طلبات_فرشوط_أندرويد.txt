@@ -1,0 +1,157 @@
+===================================================
+   تطبيق طلبات فرشوط - دليل وملفات إعداد الأندرويد 🤖🇪🇬
+===================================================
+
+أهلاً بك يا أستاذ حسن! هذا الملف يحتوي على التكوينات الكاملة وملفات البايلود الجاهزة لتشغيل وبناء تطبيق "طلبات فرشوط" على هواتف الأندرويد (Android) كـ تطبيق أصلي مستقل سريع وخفيف الوزن (أقل من 5 ميجابايت).
+
+رابط الويب الفعلي للتطبيق:
+https://ais-pre-uukjq5zko7dnaqj35uhokr-583460041327.europe-west1.run.app
+
+---------------------------------------------------
+الخيار الأول: التثبيت الفوري كـ تطبيق ويب تقدمي (PWA) 📱
+---------------------------------------------------
+تطبيق "طلبات فرشوط" مهيأ بالكامل كـ PWA مع Service Worker متطور ومManifest.
+لتثبيته فوراً على أي هاتف أندرويد دون الحاجة للكمبيوتر:
+1. افتح متصفح Google Chrome على هاتفك واذهب إلى رابط الويب الفعلي بالأعلى.
+2. ستظهر لك رسالة أسفل الشاشة "إضافة طلبات فرشوط إلى الشاشة الرئيسية" (Add to Home Screen).
+3. اضغط عليها وسيتم تثبيت التطبيق فوراً كأيقونة على هاتفك ويظهر بكامل الشاشة وبدون أشرطة المتصفح!
+
+---------------------------------------------------
+الخيار الثاني: بناء تطبيق أندرويد حقيقي باستخدام Expo WebView ⚛️
+---------------------------------------------------
+باستخدام Expo، يمكنك بناء تطبيق أندرويد (APK) فائق السرعة يعتمد على التحميل السحابي التلقائي. أي تحديثات تقوم بها للويب تظهر فوراً لدى المستخدمين دون الحاجة لتحديث التطبيق من المتجر!
+
+خطوات إنشاء وبناء التطبيق على جهازك:
+
+1. قم بتثبيت Node.js على جهازك الكمبيوتر.
+2. افتح مبدل الأوامر (Terminal) في مجلد فارغ واكتب الأمر لإنشاء مشروع إكسبو جديد:
+   npx create-expo-app talabat-farshout --template blank
+
+3. ادخل لمجلد المشروع الجديد:
+   cd talabat-farshout
+
+4. قم بتثبيت الإضافات المطلوبة لتشغيل الويب فيو وتحديد الموقع:
+   npx expo install react-native-webview expo-location expo-device expo-status-bar
+
+5. قم بإنشاء واستبدال الملفات التالية في مشروعك:
+
+--- [ ملف: app.json ] ---
+{
+  "expo": {
+    "name": "طلبات فرشوط",
+    "slug": "talabat-farshout",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ef4444"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ef4444"
+      },
+      "package": "com.farshout.talabat",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "INTERNET"
+      ]
+    }
+  }
+}
+
+--- [ ملف: App.js ] ---
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, SafeAreaView, StatusBar, BackHandler, ActivityIndicator, Text, Alert } from 'react-native';
+import { WebView } from 'react-native-webview';
+import * as Location from 'expo-location';
+
+export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const webViewRef = useRef(null);
+  const TARGET_URL = 'https://ais-pre-uukjq5zko7dnaqj35uhokr-583460041327.europe-west1.run.app';
+
+  useEffect(() => {
+    (async () => {
+      await Location.requestForegroundPermissionsAsync();
+    })();
+  }, []);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ef4444" barStyle="light-content" />
+      <View style={styles.innerContainer}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: TARGET_URL }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+          geolocationEnabled={true}
+          originWhitelist={['*']}
+          onLoadStart={() => setIsLoading(true)}
+          onLoadEnd={() => setIsLoading(false)}
+          onError={() => {
+            Alert.alert(
+              'خطأ في الاتصال',
+              'يرجى التأكد من اتصالك بالإنترنت لتشغيل تطبيق طلبات فرشوط.',
+              [{ text: 'تحديث', onPress: () => webViewRef.current?.reload() }]
+            );
+          }}
+        />
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#ef4444" />
+            <Text style={styles.loadingText}>جاري تحميل طلبات فرشوط...</Text>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#ef4444' },
+  innerContainer: { flex: 1, position: 'relative' },
+  webview: { flex: 1 },
+  loadingContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center'
+  },
+  loadingText: { marginTop: 10, fontSize: 14, fontWeight: 'bold', color: '#334155' }
+});
+
+---------------------------------------------------
+الخيار الثالث: المزامنة المباشرة عبر Capacitor (مشروع أصلي بالكامل) 🛠️
+---------------------------------------------------
+عند تنزيل مشروع الويب بالكامل من المنصة:
+1. قم بفتح الـ Terminal في مجلد المشروع واكتب: npm install
+2. قم ببناء الواجهات: npm run build
+3. أضف منصة الأندرويد: npx cap add android
+4. زامن الأكواد: npx cap sync
+5. افتح المشروع في أندرويد ستوديو للتجميع النهائي: npx cap open android
+
+---------------------------------------------------
+طلبات فرشوط © 2026 - دائماً في خدمة أهالي فرشوط الكرام 🛵❤️
+===================================================
