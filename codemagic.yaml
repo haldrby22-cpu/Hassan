@@ -4,12 +4,10 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
-    cache:
-      cache_paths:
-        - ~/.npm
     scripts:
       - name: Install dependencies
-        script: npm ci
+        # نستخدم npm install لأنها أقل تعقيداً وأكثر مرونة
+        script: npm install
       - name: Build web assets
         script: npm run build
       - name: Sync android
