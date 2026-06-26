@@ -4,10 +4,13 @@ workflows:
     environment:
       node: 20
     scripts:
-      - name: Install dependencies
-        script: npm install
+      - name: Clean and Install dependencies
+        script: |
+          # حذف المجلدات وملفات القفل لتجنب تعارض المعمارية
+          rm -rf node_modules package-lock.json
+          # تثبيت المكتبات من جديد وبشكل نظيف
+          npm install
       - name: Build Web
-        # هذا هو الأمر الصحيح لمشروعك بناءً على ملف package.json
         script: npm run build
     artifacts:
       - dist/
