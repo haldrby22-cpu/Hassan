@@ -568,6 +568,29 @@ export default function OrderTracker({ order, onClose, onUpdateStatus }: OrderTr
                 <span className="text-red-500 text-sm font-black">{order.total} ج.م</span>
               </div>
             </div>
+
+            {/* Help / Support Box with direct contact links */}
+            <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl space-y-2">
+              <span className="text-[10px] font-black text-slate-700 block">💬 هل تواجه مشكلة؟ تواصل مع الدعم الفني لفرشوط عبر الواتساب:</span>
+              <div className="flex gap-2">
+                <a 
+                  href="https://wa.me/201060416808"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-white hover:bg-emerald-50 border border-emerald-100 text-emerald-700 font-extrabold text-[10.5px] py-2 px-1 rounded-xl flex items-center justify-center gap-1 transition-colors"
+                >
+                  <span>أ. حسن (واتساب) 💬</span>
+                </a>
+                <a 
+                  href="https://wa.me/201065049420"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-white hover:bg-emerald-50 border border-emerald-100 text-emerald-700 font-extrabold text-[10.5px] py-2 px-1 rounded-xl flex items-center justify-center gap-1 transition-colors"
+                >
+                  <span>الدعم (واتساب) 💬</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

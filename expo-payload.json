@@ -1,0 +1,89 @@
+{
+  "info": {
+    "appName": "طلبات فرشوط",
+    "description": "ملف تهيئة وبايلود جاهز للتشغيل والرفع الفوري عبر Expo React Native",
+    "targetUrl": "https://ais-pre-uukjq5zko7dnaqj35uhokr-583460041327.europe-west1.run.app",
+    "instructions": [
+      "1. قم بتثبيت Node.js على جهازك إذا لم يكن مثبتاً.",
+      "2. افتح مبدل الأوامر (Terminal) في مجلد فارغ واكتب: npx create-expo-app talabat-farshout --template blank",
+      "3. ادخل إلى المجلد: cd talabat-farshout",
+      "4. قم بتثبيت إضافة الـ WebView والـ Geolocation والمكتبات المطلوبة لتشغيل طلبات فرشوط بفرشوط: npx expo install react-native-webview expo-location expo-device expo-status-bar",
+      "5. استبدل محتويات الملفات في مشروع Expo بالملفات المرفقة في هذا البايلود (package.json و app.json و App.js).",
+      "6. شغل التطبيق محلياً للتجربة: npx expo start",
+      "7. لبناء ملف الـ APK النهائي أو AAB للرفع على جوجل بلاي مباشرة، استخدم أداة EAS Build: eas build --platform android"
+    ]
+  },
+  "files": {
+    "app.json": {
+      "expo": {
+        "name": "طلبات فرشوط",
+        "slug": "talabat-farshout",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "splash": {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ef4444"
+        },
+        "assetBundlePatterns": [
+          "**/*"
+        ],
+        "ios": {
+          "supportsTablet": true,
+          "bundleIdentifier": "com.farshout.talabat",
+          "infoPlist": {
+            "NSLocationWhenInUseUsageDescription": "نحتاج للوصول إلى موقعك الحالي لتوصيل الطلبات بدقة في مركز فرشوط.",
+            "NSLocationAlwaysAndWhenInUseUsageDescription": "نحتاج للوصول إلى موقعك لتحديد أقرب المطاعم وتتبع الكابتن مباشرة بفرشوط."
+          }
+        },
+        "android": {
+          "adaptiveIcon": {
+            "foregroundImage": "./assets/adaptive-icon.png",
+            "backgroundColor": "#ef4444"
+          },
+          "package": "com.farshout.talabat",
+          "permissions": [
+            "ACCESS_COARSE_LOCATION",
+            "ACCESS_FINE_LOCATION",
+            "FOREGROUND_SERVICE",
+            "INTERNET"
+          ]
+        },
+        "web": {
+          "favicon": "./assets/favicon.png"
+        },
+        "extra": {
+          "eas": {
+            "projectId": "talabat-farshout-project"
+          }
+        }
+      }
+    },
+    "package.json": {
+      "name": "talabat-farshout",
+      "version": "1.0.0",
+      "scripts": {
+        "start": "expo start",
+        "android": "expo start --android",
+        "ios": "expo start --ios",
+        "web": "expo start --web"
+      },
+      "dependencies": {
+        "expo": "~51.0.0",
+        "expo-status-bar": "~1.12.1",
+        "react": "18.2.0",
+        "react-native": "0.74.1",
+        "react-native-webview": "13.8.6",
+        "expo-location": "~17.0.1",
+        "expo-device": "~6.0.1"
+      },
+      "devDependencies": {
+        "@babel/core": "^7.20.0"
+      },
+      "private": true
+    },
+    "App.js": "import React, { useEffect, useState, useRef } from 'react';\nimport { StyleSheet, View, SafeAreaView, StatusBar, BackHandler, ActivityIndicator, Text, Platform, Alert } from 'react-native';\nimport { WebView } from 'react-native-webview';\nimport * as Location from 'expo-location';\n\nexport default function App() {\n  const [locationPermission, setLocationPermission] = useState(null);\n  const [isLoading, setIsLoading] = useState(true);\n  const webViewRef = useRef(null);\n  const TARGET_URL = 'https://ais-pre-uukjq5zko7dnaqj35uhokr-583460041327.europe-west1.run.app';\n\n  // طلب صلاحيات الموقع لتمريرها تلقائياً للويب فيو\n  useEffect(() => {\n    (async () => {\n      let { status } = await Location.requestForegroundPermissionsAsync();\n      setLocationPermission(status === 'granted');\n    })();\n  }, []);\n\n  // معالجة زر الرجوع في هواتف الأندرويد لعدم الخروج المفاجئ من التطبيق\n  useEffect(() => {\n    const onBackPress = () => {\n      if (webViewRef.current) {\n        webViewRef.current.goBack();\n        return true;\n      }\n      return false;\n    };\n\n    BackHandler.addEventListener('hardwareBackPress', onBackPress);\n    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);\n  }, []);\n\n  return (\n    <SafeAreaView style={styles.container}>\n      <StatusBar backgroundColor=\"#ef4444\" barStyle=\"light-content\" />\n      <View style={styles.innerContainer}>\n        <WebView\n          ref={webViewRef}\n          source={{ uri: TARGET_URL }}\n          style={styles.webview}\n          javaScriptEnabled={true}\n          domStorageEnabled={true}\n          startInLoadingState={true}\n          geolocationEnabled={true}\n          originWhitelist={['*']}\n          scalesPageToFit={true}\n          onLoadStart={() => setIsLoading(true)}\n          onLoadEnd={() => setIsLoading(false)}\n          onError={(syntheticEvent) => {\n            const { nativeEvent } = syntheticEvent;\n            console.warn('WebView error: ', nativeEvent);\n            Alert.alert(\n              'خطأ في الاتصال',\n              'يرجى التأكد من اتصالك بالإنترنت والمحاولة مجدداً لفتح طلبات فرشوط.',\n              [{ text: 'تحديث', onPress: () => webViewRef.current?.reload() }]\n            );\n          }}\n        />\n        {isLoading && (\n          <View style={styles.loadingContainer}>\n            <ActivityIndicator size=\"large\" color=\"#ef4444\" />\n            <Text style={styles.loadingText}>جاري تحميل طلبات فرشوط بفرشوط...</Text>\n          </View>\n        )}\n      </View>\n    </SafeAreaView>\n  );\n}\n\nconst styles = StyleSheet.create({\n  container: {\n    flex: 1,\n    backgroundColor: '#ef4444',\n  },\n  innerContainer: {\n    flex: 1,\n    position: 'relative',\n  },\n  webview: {\n    flex: 1,\n  },\n  loadingContainer: {\n    position: 'absolute',\n    top: 0,\n    left: 0,\n    right: 0,\n    bottom: 0,\n    backgroundColor: '#ffffff',\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  loadingText: {\n    marginTop: 10,\n    fontSize: 14,\n    fontWeight: 'bold',\n    color: '#334155',\n  },\n});"
+  }
+}

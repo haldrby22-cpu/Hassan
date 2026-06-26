@@ -41,7 +41,7 @@ export default function AndroidBuilder({ onClose, appName }: AndroidBuilderProps
   const [buildProgress, setBuildProgress] = useState(0);
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'config' | 'files' | 'logs' | 'guide'>('config');
-  const [activeFile, setActiveFile] = useState<'capacitor' | 'manifest' | 'gradle' | 'activity'>('capacitor');
+  const [activeFile, setActiveFile] = useState<'capacitor' | 'manifest' | 'gradle' | 'activity' | 'expo_json' | 'expo_js'>('capacitor');
   const [copiedText, setCopiedText] = useState(false);
 
   const consoleEndRef = useRef<HTMLDivElement>(null);
@@ -179,12 +179,133 @@ class MainActivity : BridgeActivity() {
 `;
   };
 
+  const getExpoAppJson = () => {
+    return `{
+  "expo": {
+    "name": "${displayName}",
+    "slug": "talabat-farshout",
+    "version": "${appVersion}",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ef4444"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "${appId}",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "نحتاج للوصول إلى موقعك الحالي لتوصيل الطلبات بدقة في مركز فرشوط."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ef4444"
+      },
+      "package": "${appId}",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "INTERNET"
+      ]
+    }
+  }
+}`;
+  };
+
+  const getExpoAppJs = () => {
+    return `import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, SafeAreaView, StatusBar, BackHandler, ActivityIndicator, Text, Alert } from 'react-native';
+import { WebView } from 'react-native-webview';
+import * as Location from 'expo-location';
+
+export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const webViewRef = useRef(null);
+  const TARGET_URL = '${typeof window !== 'undefined' ? window.location.origin : 'https://talabat-farshout.web.app'}';
+
+  // طلب صلاحيات الموقع لتمريرها تلقائياً للويب فيو
+  useEffect(() => {
+    (async () => {
+      await Location.requestForegroundPermissionsAsync();
+    })();
+  }, []);
+
+  // معالجة زر الرجوع في هواتف الأندرويد لعدم الخروج المفاجئ
+  useEffect(() => {
+    const onBackPress = () => {
+      if (webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#ef4444" barStyle="light-content" />
+      <View style={styles.innerContainer}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: TARGET_URL }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+          geolocationEnabled={true}
+          originWhitelist={['*']}
+          onLoadStart={() => setIsLoading(true)}
+          onLoadEnd={() => setIsLoading(false)}
+          onError={() => {
+            Alert.alert(
+              'خطأ في الاتصال',
+              'يرجى التأكد من اتصالك بالإنترنت لتشغيل طلبات فرشوط.',
+              [{ text: 'تحديث', onPress: () => webViewRef.current?.reload() }]
+            );
+          }}
+        />
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size=\"large\" color=\"#ef4444\" />
+            <Text style={styles.loadingText}>جاري تحميل طلبات فرشوط...</Text>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#ef4444' },
+  innerContainer: { flex: 1, position: 'relative' },
+  webview: { flex: 1 },
+  loadingContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center'
+  },
+  loadingText: { marginTop: 10, fontSize: 14, fontWeight: 'bold', color: '#334155' }
+});`;
+  };
+
   const getActiveFileContent = () => {
     switch (activeFile) {
       case 'capacitor': return getCapacitorConfig();
       case 'manifest': return getAndroidManifest();
       case 'gradle': return getBuildGradle();
       case 'activity': return getMainActivity();
+      case 'expo_json': return getExpoAppJson();
+      case 'expo_js': return getExpoAppJs();
     }
   };
 
@@ -194,6 +315,8 @@ class MainActivity : BridgeActivity() {
       case 'manifest': return 'AndroidManifest.xml';
       case 'gradle': return 'app/build.gradle';
       case 'activity': return 'MainActivity.kt';
+      case 'expo_json': return 'expo/app.json';
+      case 'expo_js': return 'expo/App.js';
     }
   };
 
@@ -428,7 +551,9 @@ class MainActivity : BridgeActivity() {
                 { key: 'capacitor', label: 'capacitor.config.ts', icon: '⚡' },
                 { key: 'manifest', label: 'AndroidManifest.xml', icon: '📋' },
                 { key: 'gradle', label: 'build.gradle', icon: '🐘' },
-                { key: 'activity', label: 'MainActivity.kt', icon: '📱' }
+                { key: 'activity', label: 'MainActivity.kt', icon: '📱' },
+                { key: 'expo_json', label: 'expo/app.json', icon: '📦' },
+                { key: 'expo_js', label: 'expo/App.js', icon: '⚛️' }
               ].map(f => (
                 <button
                   key={f.key}
@@ -558,43 +683,81 @@ class MainActivity : BridgeActivity() {
 
         {/* TAB Content 4: Guides */}
         {activeSubTab === 'guide' && (
-          <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-            <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5 border-b border-slate-50 pb-2">
-              <BookOpen className="h-4 w-4 text-red-500" />
-              <span>دليل المطور للتشغيل على جهازك الحقيقي</span>
-            </h5>
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+              <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5 border-b border-slate-50 pb-2">
+                <BookOpen className="h-4 w-4 text-red-500" />
+                <span>دليل تشغيل التطبيق كـ تطبيق أندرويد عبر Expo</span>
+              </h5>
 
-            <div className="bg-amber-50/70 border border-amber-150 p-3 rounded-2xl text-[9px] text-amber-800 font-bold leading-relaxed mb-1 space-y-1">
-              <p>💡 <span className="font-black text-amber-950">تم حل مشكلة الشاشة البيضاء بالكامل (White Screen Fix):</span></p>
-              <p>كانت الشاشة البيضاء تحدث لسببين رئيسيين وتم علاجهما بالكامل:</p>
-              <ul className="list-decimal list-inside space-y-0.5 text-[8px] text-amber-900 font-semibold">
-                <li><span className="font-bold">المسارات المطلقة:</span> قمنا بتحويلها لمسارات نسبية آمنة عبر ضبط الـ <code className="bg-amber-100/60 px-1 rounded">base: './'</code> في ملف <code className="bg-amber-100/60 px-1 rounded">vite.config.ts</code>.</li>
-                <li><span className="font-bold">ملف الـ Service Worker (sw.js):</span> كان يقوم باعتراض طلبات الملفات داخل نظام الأندرويد ويعمل بشكل غير متوافق مع نظام الـ WebView للهواتف مما يؤدي لتعطيل تحميل واجهة المستخدم بالكامل. قمنا بإضافة كود حماية ذكي يمنع تشغيل الـ Service Worker تلقائياً عندما يكتشف التطبيق أنه يعمل كـ تطبيق أندرويد حقيقي أو بيئة Capacitor هجينة، مع إبقائه متاحاً لنسخة الويب العادية فقط!</li>
-              </ul>
+              <div className="bg-emerald-50 border border-emerald-150 p-3 rounded-2xl text-[9px] text-emerald-800 font-bold leading-relaxed mb-1 space-y-1">
+                <p>🚀 <span className="font-black text-emerald-950">ميزة بايلود Expo الممتازة:</span></p>
+                <p className="text-[8px] leading-normal text-emerald-900 font-semibold">
+                  باستخدام Expo WebView، يمكنك بناء تطبيق أندرويد (APK) و آيفون (iOS) فائق السرعة وخفيف الوزن جداً (أقل من 5 ميجابايت). يعتمد التطبيق على التحميل السحابي التلقائي لطلبات فرشوط، مما يعني أن أي تحديثات تقوم بها للويب تظهر فوراً لدى مستخدمي التطبيق دون الحاجة لتحديث التطبيق من المتجر!
+                </p>
+              </div>
+
+              <div className="space-y-4 text-[10px] text-slate-600 leading-relaxed font-bold">
+                <p>خطوات بناء مشروع أندرويد متكامل باستخدام بايلود Expo المرفق:</p>
+                
+                <div className="space-y-3.5 pt-1">
+                  {[
+                    { step: '1', title: 'إنشاء مشروع Expo فارغ', desc: 'افتح منفذ الأوامر Terminal في مجلد فارغ واكتب الأمر:\n`npx create-expo-app talabat-farshout --template blank`' },
+                    { step: '2', title: 'تثبيت الإضافات المطلوبة للويب والموقع', desc: 'ادخل لمجلد المشروع واكتب:\n`cd talabat-farshout`\nثم ثبت الإضافات المطلوبة:\n`npx expo install react-native-webview expo-location expo-device expo-status-bar`' },
+                    { step: '3', title: 'استبدال ملفات الإعدادات والبايلود', desc: 'انسخ كود ملف `expo/app.json` و `expo/App.js` من تبويب "الملفات البرمجية" بالأعلى، واستبدل بهما الملفات الموجودة في مشروعك الجديد.' },
+                    { step: '4', title: 'التجربة والتشغيل الفوري', desc: 'لتجربة التطبيق مباشرة على هاتفك عبر تطبيق Expo Go، اكتب:\n`npx expo start`\nثم امسح كود QR الظاهر بكاميرا هاتفك.' },
+                    { step: '5', title: 'بناء ملف الـ APK النهائي', desc: 'لبناء التطبيق ورفع حزمة الـ APK، سجل في موقع Expo واكتب:\n`eas build --platform android`' }
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-3">
+                      <span className="h-5 w-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                        {item.step}
+                      </span>
+                      <div className="space-y-1">
+                        <h6 className="text-[11px] font-black text-slate-800">{item.title}</h6>
+                        <p className="text-[9px] text-slate-400 leading-normal font-semibold whitespace-pre-line">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-4 text-[10px] text-slate-600 leading-relaxed font-bold">
-              <p>لتشغيل كود التطبيق المكتوب كـ تطبيق أندرويد حقيقي على هاتفك الشخصي، اتبع الخطوات التالية البسيطة بمركز فرشوط:</p>
-              
-              <div className="space-y-3.5 pt-1">
-                {[
-                  { step: '1', title: 'تنزيل الكود وتثبيت Node.js', desc: 'قم بتنزيل كود هذا المشروع بالكامل كملف ZIP من قائمة الإعدادات الجانبية، ثم فك الضغط وافتح منفذ الأوامر Terminal في مجلد المشروع.' },
-                  { step: '2', title: 'تثبيت الحزم البرمجية', desc: 'اكتب الأمر التالي لتنزيل وتثبيت كافة المكتبات اللازمة للمشروع:\n`npm install`' },
-                  { step: '3', title: 'بناء وتجميع الواجهات', desc: 'قم بعمل نسخة إنتاجية للواجهات باستخدام Vite عن طريق كتابة:\n`npm run build`' },
-                  { step: '4', title: 'إضافة منصة الأندرويد للمشروع', desc: 'لتوليد مجلد أندرويد حقيقي يحوي مشروع Capacitor من الصفر، اكتب:\n`npx cap add android`' },
-                  { step: '5', title: 'مزامنة الكود مع الأندرويد', desc: 'لمزامنة ملفات React مع منصة الأندرويد والـ WebView، اكتب:\n`npx cap sync`' },
-                  { step: '6', title: 'فتح المشروع في Android Studio', desc: 'لفتح مشروع الأندرويد في ستوديو التطوير وتثبيته على هاتفك، اكتب:\n`npx cap open android`' }
-                ].map((item) => (
-                  <div key={item.step} className="flex gap-3">
-                    <span className="h-5 w-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-                      {item.step}
-                    </span>
-                    <div className="space-y-1">
-                      <h6 className="text-[11px] font-black text-slate-800">{item.title}</h6>
-                      <p className="text-[9px] text-slate-400 leading-normal font-semibold whitespace-pre-line">{item.desc}</p>
+            <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+              <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5 border-b border-slate-50 pb-2">
+                <Smartphone className="h-4 w-4 text-red-500" />
+                <span>دليل تشغيل التطبيق كـ تطبيق أندرويد عادي (طريقة Capacitor)</span>
+              </h5>
+
+              <div className="bg-amber-50/70 border border-amber-150 p-3 rounded-2xl text-[9px] text-amber-800 font-bold leading-relaxed mb-1 space-y-1">
+                <p>💡 <span className="font-black text-amber-950">حل مشكلة الشاشة البيضاء (White Screen Fix):</span></p>
+                <p className="text-[8px] leading-normal text-amber-900 font-semibold">
+                  تظهر شاشة بيضاء في تطبيقات WebView إذا كانت مسارات الملفات مطلقة أو إذا حاول الـ Service Worker العمل محلياً في بيئة الأندرويد. قمنا بحل هذه المشكلة بالكامل وتلقائياً عبر ضبط الـ <code className="bg-amber-100/60 px-1 rounded">base: "./"</code> في <code className="bg-amber-100/60 px-1 rounded">vite.config.ts</code> وتعطيل الـ SW في الهواتف!
+                </p>
+              </div>
+
+              <div className="space-y-4 text-[10px] text-slate-600 leading-relaxed font-bold">
+                <p>لتشغيل التطبيق المباشر كـ تطبيق أندرويد أصلي (Capacitor)، اتبع الآتي:</p>
+                
+                <div className="space-y-3.5 pt-1">
+                  {[
+                    { step: '1', title: 'تنزيل الكود وتثبيت Node.js', desc: 'قم بتنزيل كود هذا المشروع بالكامل كملف ZIP من قائمة الإعدادات الجانبية، ثم فك الضغط وافتح منفذ الأوامر Terminal في مجلد المشروع.' },
+                    { step: '2', title: 'تثبيت الحزم البرمجية', desc: 'اكتب الأمر التالي لتنزيل وتثبيت كافة المكتبات اللازمة للمشروع:\n`npm install`' },
+                    { step: '3', title: 'بناء وتجميع الواجهات', desc: 'قم بعمل نسخة إنتاجية للواجهات باستخدام Vite عن طريق كتابة:\n`npm run build`' },
+                    { step: '4', title: 'إضافة منصة الأندرويد للمشروع', desc: 'لتوليد مجلد أندرويد حقيقي يحوي مشروع Capacitor من الصفر، اكتب:\n`npx cap add android`' },
+                    { step: '5', title: 'مزامنة الكود مع الأندرويد', desc: 'لمزامنة ملفات React مع منصة الأندرويد والـ WebView، اكتب:\n`npx cap sync`' },
+                    { step: '6', title: 'فتح المشروع في Android Studio', desc: 'لفتح مشروع الأندرويد في ستوديو التطوير وتثبيته على هاتفك، اكتب:\n`npx cap open android`' }
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-3">
+                      <span className="h-5 w-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                        {item.step}
+                      </span>
+                      <div className="space-y-1">
+                        <h6 className="text-[11px] font-black text-slate-800">{item.title}</h6>
+                        <p className="text-[9px] text-slate-400 leading-normal font-semibold whitespace-pre-line">{item.desc}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -35,6 +35,7 @@ import MerchantPanel from './components/MerchantPanel';
 import DriverPanel from './components/DriverPanel';
 import AndroidBuilder from './components/AndroidBuilder';
 import RegisterModal from './components/RegisterModal';
+import SupportModal from './components/SupportModal';
 
 export default function App() {
   // Authentication & Portal selection state
@@ -63,6 +64,7 @@ export default function App() {
   // Navigation & Filtering
   const [activeTab, setActiveTab] = useState<'explore' | 'cart' | 'history' | 'tracking' | 'account'>('explore');
   const [isAndroidBuilderOpen, setIsAndroidBuilderOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   // Customer registration/account verification states
   const [customerAccount, setCustomerAccount] = useState<{ name: string; phone: string; address: string; password?: string } | null>(() => {
@@ -436,75 +438,92 @@ export default function App() {
     : 10;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col lg:flex-row items-center justify-center font-sans md:py-6" dir="rtl" style={{ backgroundImage: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' }}>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col lg:flex-row items-center justify-center font-sans md:py-6 relative overflow-hidden" dir="rtl">
+      
+      {/* Premium ambient light glow effects for luxury feel */}
+      <div className="hidden lg:block absolute top-1/4 left-[12%] w-[450px] h-[450px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="hidden lg:block absolute bottom-1/4 right-[5%] w-[400px] h-[400px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
       
       {/* Desktop Background Panel with branding - hidden on mobile */}
-      <div className="hidden lg:flex fixed top-0 right-0 bottom-0 left-[430px] p-12 flex-col justify-between select-none">
-        <div className="space-y-6 max-w-xl">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-lg text-2xl">
+      <div className="hidden lg:flex fixed top-0 right-0 bottom-0 left-[430px] p-12 flex-col justify-between select-none z-10">
+        <div className="space-y-8 max-w-xl">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-[0_8px_24px_rgba(239,68,68,0.4)] text-3xl transform hover:rotate-12 transition-transform duration-300">
               🛵
             </div>
             <div>
-              <h1 className="font-black text-2xl text-slate-800 tracking-tight">طلبات فرشوط</h1>
-              <p className="text-xs text-slate-400 font-bold -mt-1">تطبيق المأكولات والبقالة المتكامل بمركز فرشوط 🇪🇬</p>
+              <h1 className="font-extrabold text-3xl text-white tracking-tight bg-gradient-to-l from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">طلبات فرشوط</h1>
+              <p className="text-xs text-red-400/80 font-bold -mt-0.5 tracking-wide">تطبيق المأكولات والبقالة المتكامل بمركز فرشوط 🇪🇬</p>
             </div>
           </div>
 
-          <div className="space-y-4 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/40 shadow-sm">
-            <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-500 px-3 py-1 rounded-full text-xs font-bold">
+          <div className="space-y-5 bg-slate-900/40 backdrop-blur-xl p-7 rounded-[32px] border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+            
+            <span className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-400 px-3.5 py-1.5 rounded-full text-[11px] font-black">
               <Smartphone className="h-3.5 w-3.5" />
-              <span>تطبيق هاتف ذكي مستقل (Android PWA/APK)</span>
+              <span>تطبيق هاتف ذكي مستقل جاهز للتنزيل والعمل</span>
             </span>
-            <h2 className="text-xl font-black text-slate-800 leading-tight">
-              تمت إعادة البرمجة وتعديل الواجهة لتصبح هاتف أندرويد فقط!
+            
+            <h2 className="text-2xl font-black text-white leading-tight">
+              واجهة تفاعلية ذكية ومستقلة لكل مستخدم بفرشوط!
             </h2>
-            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-              تم عزل بوابة العميل تماماً عن بوابة المطاعم وبوابة كباتن التوصيل (الطيار) لضمان تجربة حقيقية تشبه التطبيقات المستقلة على الهواتف الذكية.
+            <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+              تم تطوير هذا الإصدار ليعمل بكفاءة فائقة على الهواتف الذكية. تصفح المتاجر، تتبع طلبياتك محلياً بمركز فرشوط، وأدر حسابك بكل سلاسة.
             </p>
 
-            <div className="border-t border-slate-200/50 pt-4 space-y-3">
-              <h4 className="font-bold text-xs text-slate-700 flex items-center gap-1">
+            <div className="border-t border-slate-800 pt-5 space-y-4">
+              <h4 className="font-bold text-xs text-red-400 flex items-center gap-1.5">
                 <span>💡</span>
                 <span>كيفية تجربة الدورة الكاملة (العميل 🧑‍💼 ➔ المطعم 🏪 ➔ الطيار 🏍️):</span>
               </h4>
-              <ol className="text-[11px] text-slate-500 space-y-2 list-decimal list-inside pr-1 font-medium leading-relaxed">
-                <li>ادخل كـ <strong className="text-red-500 font-bold">"عميل"</strong> من هاتف الأندرويد المحاكي وقم بتقديم طلب طعام.</li>
-                <li>اضغط على <strong className="text-slate-700">"حسابي"</strong> ثم <strong className="text-slate-700">"تسجيل الخروج"</strong> لتنتقل لبوابة <strong className="text-red-500 font-bold">"المطعم"</strong> لرؤية طلبك وتحضيره (كلمة المرور: <code className="bg-slate-200 px-1 rounded font-mono font-bold text-slate-600 text-[10px]">merchant</code>).</li>
-                <li>قم بتسجيل الخروج من المطعم وادخل كـ <strong className="text-red-500 font-bold">"كابتن توصيل / طيار"</strong> لقبول الطلب وتوصيله (كلمة المرور: <code className="bg-slate-200 px-1 rounded font-mono font-bold text-slate-600 text-[10px]">driver</code>).</li>
-                <li>تابع تحديث حالة الطلب فورياً في تتبع العميل المباشر!</li>
+              <ol className="text-[11px] text-slate-300 space-y-2.5 list-decimal list-inside pr-1 font-medium leading-relaxed">
+                <li>ادخل كـ <strong className="text-red-400 font-bold">"عميل"</strong> لتصفح المنيوهات وإجراء طلب تجريبي بفرشوط.</li>
+                <li>سجل الخروج من <strong className="text-slate-100">"حسابي"</strong> ثم ادخل كـ <strong className="text-red-400 font-bold">"المطعم"</strong> لرؤية الطلب والبدء بتحضيره (كلمة المرور: <code className="bg-slate-800 border border-slate-700/50 px-1.5 py-0.5 rounded font-mono font-bold text-slate-200 text-[10px]">merchant</code>).</li>
+                <li>سجل الخروج وادخل كـ <strong className="text-red-400 font-bold">"طيار"</strong> لقبول الطلب وتوصيله (كلمة المرور: <code className="bg-slate-800 border border-slate-700/50 px-1.5 py-0.5 rounded font-mono font-bold text-slate-200 text-[10px]">driver</code>).</li>
+                <li>راقب التحديثات اللحظية والتغيرات المباشرة فوراً!</li>
               </ol>
 
-              <div className="pt-2 border-t border-slate-100">
+              <div className="pt-3 border-t border-slate-800/60 space-y-3">
                 <button
                   onClick={() => setIsAndroidBuilderOpen(true)}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-xs py-3.5 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer transform hover:scale-[1.02]"
+                  className="w-full bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:brightness-110 text-white font-black text-xs py-4 px-4 rounded-2xl shadow-[0_4px_20px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2 transition-all cursor-pointer transform hover:scale-[1.01] active:scale-95"
                 >
-                  <Smartphone className="h-4.5 w-4.5 animate-pulse" />
-                  <span>شغّل أداة بناء الـ APK وتوليد كود الأندرويد 📱</span>
+                  <Smartphone className="h-4.5 w-4.5 animate-bounce" />
+                  <span>مولّد حزم الـ APK والـ Expo المباشر 📱</span>
                 </button>
+
+                <div className="bg-slate-900/60 border border-white/5 p-4 rounded-2xl flex items-center justify-between text-[11px] font-bold text-slate-300">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-slate-400 font-extrabold block">الدعم الفني والشكاوى لـ طلبات فرشوط:</span>
+                    <div className="text-[11px] font-black text-emerald-400 flex items-center gap-1.5 mt-0.5">
+                      <span>🟢 متاح المتابعة والمساعدة الفورية عبر الواتساب</span>
+                    </div>
+                  </div>
+                  <span className="text-xl animate-pulse">💬</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-1 text-xs text-slate-400 font-medium">
-          <p>تطبيق طلبات فرشوط - جميع حقوق النشر محفوظة باسم حسن الدربي © 2026</p>
-          <p className="text-[10px] text-slate-300">مطاعم بقالة وكافيهات • جمهورية مصر العربية 🇪🇬</p>
+        <div className="space-y-1.5 text-xs text-slate-500 font-medium">
+          <p className="text-slate-400">تطبيق طلبات فرشوط - جميع حقوق النشر محفوظة باسم حسن الدربي © 2026</p>
+          <p className="text-[10px] text-slate-500">مطاعم بقالة وكافيهات • جمهورية مصر العربية 🇪🇬 • هاتف ذكي مطور</p>
         </div>
       </div>
 
       {/* Realistic Android Phone Mockup container */}
-      <div className="w-full min-h-screen md:min-h-0 md:h-[840px] md:w-[390px] md:rounded-[42px] md:border-[10px] md:border-slate-900 md:shadow-2xl md:relative md:overflow-hidden md:flex md:flex-col bg-slate-50 select-none md:scale-95 lg:scale-100 transition-all">
+      <div className="w-full min-h-screen md:min-h-0 md:h-[840px] md:w-[390px] md:rounded-[48px] md:border-[12px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(239,68,68,0.15),0_30px_70px_rgba(15,23,42,0.6)] md:relative md:overflow-hidden md:flex md:flex-col bg-slate-50 select-none md:scale-[0.98] lg:scale-100 transition-all duration-500 md:ring-8 md:ring-slate-900/15 z-20">
         
         {/* Android Punch Hole Camera Bezel - Hidden on mobile */}
-        <div className="hidden md:block absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-full z-50 flex items-center justify-between px-3">
+        <div className="hidden md:flex absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5.5 bg-slate-900 rounded-full z-50 items-center justify-between px-3 shadow-inner border border-white/5">
           <div className="h-1.5 w-1.5 rounded-full bg-slate-800" />
-          <div className="h-2 w-2 rounded-full bg-blue-900/60" />
+          <div className="h-2 w-2 rounded-full bg-blue-900/60 shadow" />
         </div>
 
         {/* Android Status Bar (Fixed at top) */}
-        <div className="bg-white border-b border-slate-100 text-slate-700 text-[10px] font-extrabold px-5 py-2.5 flex items-center justify-between z-40 shrink-0">
+        <div className="bg-white border-b border-slate-100 text-slate-700 text-[10px] font-extrabold px-5 py-3 flex items-center justify-between z-40 shrink-0">
           <span className="font-mono tracking-wide">{statusBarTime}</span>
           <div className="flex items-center gap-1.5">
             <span>📶 4G</span>
@@ -515,10 +534,10 @@ export default function App() {
 
         {/* Toast Notification (Scoped inside Mockup) */}
         {toast && (
-          <div className="absolute top-14 left-4 right-4 z-50 flex items-center gap-2 rounded-2xl bg-slate-900/95 backdrop-blur text-white px-4 py-2.5 shadow-xl border border-white/10 animate-bounce">
-            <div className={`h-2.5 w-2.5 rounded-full ${toast.type === 'success' ? 'bg-emerald-400' : toast.type === 'info' ? 'bg-sky-400' : 'bg-red-400'}`} />
+          <div className="absolute top-14 left-4 right-4 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 shadow-2xl border border-white/10 animate-bounce">
+            <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${toast.type === 'success' ? 'bg-emerald-400 animate-pulse' : toast.type === 'info' ? 'bg-sky-400' : 'bg-red-400'}`} />
             <span className="text-[11px] font-bold leading-none">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white mr-auto">
+            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white mr-auto cursor-pointer">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -536,6 +555,10 @@ export default function App() {
           />
         )}
 
+        {isSupportModalOpen && (
+          <SupportModal onClose={() => setIsSupportModalOpen(false)} />
+        )}
+
         {/* Scrollable Container inside Phone Mockup */}
         <div className="flex-grow overflow-y-auto flex flex-col relative bg-slate-50" style={{ height: 'calc(100% - 32px)' }}>
           
@@ -551,21 +574,21 @@ export default function App() {
                 
                 {/* Logo and Greeting */}
                 <div className="text-center space-y-3">
-                  <div className="mx-auto h-20 w-20 rounded-[28px] bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-xl shadow-red-100 animate-pulse">
+                  <div className="mx-auto h-20 w-20 rounded-[28px] bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-xl shadow-red-500/20 animate-pulse">
                     <span className="text-4xl">🛵</span>
                   </div>
                   <div className="space-y-1">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">طلبات فرشوط</h2>
                     <p className="text-xs text-slate-400 font-bold">تطبيق الدليفري والخدمات الموحد بمركز فرشوط 🇪🇬</p>
                   </div>
-                  <div className="bg-red-50 text-red-600 rounded-full py-1 px-3 text-[10px] font-black inline-block">
+                  <div className="bg-red-50 text-red-600 rounded-full py-1.5 px-4 text-[10px] font-black inline-block border border-red-100">
                     أهلاً بك في تطبيق الهاتف المحدث 👋
                   </div>
                 </div>
 
                 {/* Portals Selection */}
                 <div className="space-y-3 pt-2">
-                  <span className="text-[11px] font-extrabold text-slate-400 block pb-1">اختر نوع الحساب للدخول الآمن:</span>
+                  <span className="text-[11px] font-black text-slate-400 block pb-1">اختر نوع الحساب للدخول الآمن:</span>
                   
                   {/* Customer Portal Card */}
                   <button
@@ -576,15 +599,15 @@ export default function App() {
                       localStorage.setItem('talabat_is_logged_in', 'true');
                       setActiveTab('explore');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4 rounded-3xl transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="h-11 w-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-300">
                         🧑‍💼
                       </div>
                       <div>
                         <h4 className="font-extrabold text-xs text-slate-800">الدخول كعميل للتسوق</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">اطلب طعامك المفضل، البقالة، والحلويات بفرشوط</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">اطلب طعامك المفضل، البقالة، والحلويات بفرشوط</p>
                       </div>
                     </div>
                     <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
@@ -598,15 +621,15 @@ export default function App() {
                       localStorage.setItem('portal_role', 'merchant');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4 rounded-3xl transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+                    className="w-full text-right bg-white hover:bg-amber-50/10 border border-slate-100 hover:border-amber-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-2xl bg-amber-100 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="h-11 w-11 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-300">
                         🏪
                       </div>
                       <div>
                         <h4 className="font-extrabold text-xs text-slate-800">بوابة شركاء فرشوط (المطاعم)</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">إدارة الأصناف، الأسعار، واستلام الطلبات المباشرة</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">إدارة الأصناف، الأسعار، واستلام الطلبات المباشرة</p>
                       </div>
                     </div>
                     <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
@@ -620,15 +643,15 @@ export default function App() {
                       localStorage.setItem('portal_role', 'driver');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4 rounded-3xl transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+                    className="w-full text-right bg-white hover:bg-slate-50 border border-slate-100 hover:border-slate-300 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="h-11 w-11 rounded-xl bg-slate-900 text-white flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform duration-300">
                         🏍️
                       </div>
                       <div>
                         <h4 className="font-extrabold text-xs text-slate-800">بوابة كباتن التوصيل (الطيار)</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">استلام الطلبات الجاهزة لتوصيلها وكسب أرباح فورية</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">استلام الطلبات الجاهزة لتوصيلها وكسب أرباح فورية</p>
                       </div>
                     </div>
                     <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
@@ -642,23 +665,34 @@ export default function App() {
                       localStorage.setItem('portal_role', 'admin');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4 rounded-3xl transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="h-11 w-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform duration-300">
                         ⚙️
                       </div>
                       <div>
                         <h4 className="font-extrabold text-xs text-slate-800">لوحة الإدارة والنظام</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">إضافة المطاعم، إدارة المنتجات، ومراقبة العمليات</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">إضافة المطاعم، إدارة المنتجات، ومراقبة العمليات</p>
                       </div>
                     </div>
                     <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
                   </button>
                 </div>
+
+                {/* Direct Support shortcut in login screen */}
+                <div className="pt-2">
+                  <button 
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-2xl text-[10px] font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>☎️</span>
+                    <span>الاتصال المباشر بالدعم والمساعدة (حسن الدربي)</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="pt-8 text-center space-y-1 pb-4">
+              <div className="pt-6 text-center space-y-1 pb-4">
                 <span className="text-[9px] text-slate-400 block font-bold">تطبيق طلبات فرشوط المطور © 2026</span>
                 <span className="text-[8px] text-slate-300 block font-bold">تصميم وبرمجة حسن الدربي 🇪🇬</span>
               </div>
@@ -1082,7 +1116,10 @@ export default function App() {
                     <span className="text-[10px] bg-red-100 text-red-500 px-2 py-0.5 rounded-full font-bold">1 متاح</span>
                   </button>
 
-                  <button className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors">
+                  <button 
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
+                  >
                     <span className="flex items-center gap-2">
                       <span className="text-sm">🛠️</span>
                       <span>اتصل بنا والاتصال المباشر بالدعم</span>

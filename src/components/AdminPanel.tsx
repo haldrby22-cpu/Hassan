@@ -32,14 +32,32 @@ export default function AdminPanel({
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
+  // Admin Credentials (stored in localStorage)
+  const [adminUsername, setAdminUsername] = useState(() => {
+    return localStorage.getItem('admin_username') || 'admin';
+  });
+  const [adminPassword, setAdminPassword] = useState(() => {
+    return localStorage.getItem('admin_password') || 'admin';
+  });
+
+  // Settings Credentials Form State
+  const [newAdminUsername, setNewAdminUsername] = useState(() => {
+    return localStorage.getItem('admin_username') || 'admin';
+  });
+  const [newAdminPassword, setNewAdminPassword] = useState(() => {
+    return localStorage.getItem('admin_password') || 'admin';
+  });
+  const [credError, setCredError] = useState('');
+  const [credSuccess, setCredSuccess] = useState('');
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim() === 'admin' && password.trim() === 'admin') {
+    if (username.trim() === adminUsername && password.trim() === adminPassword) {
       setIsAuthenticated(true);
       localStorage.setItem('admin_authenticated', 'true');
       setLoginError('');
     } else {
-      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة! يرجى إدخال البيانات الافتراضية.');
+      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة! يرجى التأكد من البيانات المدخلة.');
     }
   };
 
@@ -247,12 +265,13 @@ export default function AdminPanel({
         <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 text-xs text-amber-800 space-y-1">
           <p className="font-bold flex items-center gap-1.5">
             <span>💡</span>
-            <span>معلومات الدخول الافتراضية للتجربة:</span>
+            <span>بيانات الدخول الحالية للوحة الإدارة:</span>
           </p>
           <div className="font-mono text-[11px] text-amber-700/90 flex flex-col gap-0.5 mt-1.5 bg-white/50 p-2 rounded-lg border border-amber-50">
-            <div>اسم المستخدم: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">admin</span></div>
-            <div>كلمة المرور: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">admin</span></div>
+            <div>اسم المستخدم: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">{adminUsername}</span></div>
+            <div>كلمة المرور: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">{adminPassword}</span></div>
           </div>
+          <p className="text-[10px] text-slate-400 mt-1">يمكنك تغيير هذه البيانات في أي وقت من داخل لوحة التحكم بعد تسجيل الدخول.</p>
         </div>
       </div>
     );
@@ -281,6 +300,86 @@ export default function AdminPanel({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Create New Shop Form */}
         <div className="lg:col-span-6 space-y-6">
+          
+          {/* Change Admin Credentials Card */}
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-[24px] p-6 border border-slate-800 shadow-xl space-y-4">
+            <h3 className="font-extrabold text-xs text-slate-100 flex items-center gap-2 pb-2 border-b border-white/10">
+              <ShieldCheck className="h-4.5 w-4.5 text-red-500 animate-pulse" />
+              <span>إعدادات حماية لوحة التحكم (تغيير اسم المستخدم والرقم السري)</span>
+            </h3>
+            
+            <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
+              قم بتعديل بيانات الدخول الافتراضية لحماية لوحة الإدارة من الوصول غير المصرح به. سيتم حفظ البيانات فورياً في ذاكرة الهاتف/المتصفح الآمنة.
+            </p>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              setCredError('');
+              setCredSuccess('');
+              const u = newAdminUsername.trim();
+              const p = newAdminPassword.trim();
+              if (!u) {
+                setCredError('اسم المستخدم لا يمكن أن يكون فارغاً!');
+                return;
+              }
+              if (p.length < 4) {
+                setCredError('كلمة المرور يجب أن تكون 4 خانات على الأقل!');
+                return;
+              }
+              setAdminUsername(u);
+              setAdminPassword(p);
+              localStorage.setItem('admin_username', u);
+              localStorage.setItem('admin_password', p);
+              setCredSuccess('تم حفظ اسم المستخدم وكلمة المرور الجديدة بنجاح! 🎉');
+            }} className="space-y-3.5">
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 block">اسم المستخدم الجديد:</label>
+                  <input
+                    type="text"
+                    value={newAdminUsername}
+                    onChange={(e) => setNewAdminUsername(e.target.value)}
+                    placeholder="اسم المستخدم الجديد"
+                    className="w-full rounded-xl bg-slate-800 border border-slate-700/85 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 block">كلمة المرور الجديدة:</label>
+                  <input
+                    type="text"
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    placeholder="كلمة المرور الجديدة"
+                    className="w-full rounded-xl bg-slate-800 border border-slate-700/85 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-red-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              {credError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2.5 rounded-xl text-[10px] font-bold">
+                  ⚠️ {credError}
+                </div>
+              )}
+
+              {credSuccess && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-2.5 rounded-xl text-[10px] font-bold">
+                  ✅ {credSuccess}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:brightness-110 text-white font-black text-[11px] py-2.5 px-4 rounded-xl shadow-md transition-all cursor-pointer transform active:scale-95"
+              >
+                حفظ بيانات الحماية الجديدة 🔒
+              </button>
+            </form>
+          </div>
+
           <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
             <h3 className="font-extrabold text-base text-slate-800 mb-4 pb-2 border-b border-slate-50 flex items-center gap-2">
               <Plus className="h-5 w-5 text-red-500" />
