@@ -326,6 +326,20 @@ const styles = StyleSheet.create({
     setTimeout(() => setCopiedText(false), 2000);
   };
 
+  const handleDownloadCodeFile = () => {
+    const content = getActiveFileContent();
+    const fileName = getFileName() || 'android-config.txt';
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Simulate Android Build Console logs
   const runBuildSimulation = () => {
     setBuildStatus('building');
@@ -574,13 +588,22 @@ const styles = StyleSheet.create({
                   <FileCode className="h-4 w-4 text-red-500" />
                   <span className="font-mono text-[10px] text-slate-300 font-bold">{getFileName()}</span>
                 </div>
-                <button
-                  onClick={handleCopyCode}
-                  className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg text-[9px] font-black flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  {copiedText ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                  <span>{copiedText ? 'تم النسخ!' : 'نسخ الكود'}</span>
-                </button>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={handleDownloadCodeFile}
+                    className="bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 hover:text-white px-2.5 py-1.5 rounded-lg text-[9px] font-black flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>تحميل الملف</span>
+                  </button>
+                  <button
+                    onClick={handleCopyCode}
+                    className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white px-2.5 py-1.5 rounded-lg text-[9px] font-black flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    {copiedText ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedText ? 'تم النسخ!' : 'نسخ الكود'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Code text */}
@@ -659,15 +682,12 @@ const styles = StyleSheet.create({
 
                 <div className="flex gap-2">
                   <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert('تمت محاكاة تحميل ملف APK لـ "طلبات فرشوط"! عند تنزيل مجلد الكود بالكامل من القائمة، سيكون مشروع الأندرويد مهيأً للتجربة الفورية في جهازك الحقيقي.');
-                    }}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-3 text-[10px] font-black text-center flex items-center justify-center gap-1.5 shadow transition-colors cursor-pointer"
+                    href="/طلبات_فرشوط_أندرويد.txt"
+                    download="طلبات_فرشوط_أندرويد.txt"
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-white rounded-xl py-3 text-[10px] font-black text-center flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer transform active:scale-95 animate-pulse"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span>تنزيل ملف طلبات_فرشوط.apk</span>
+                    <span>تنزيل دليل وملف التثبيت التلقائي للاندرويد 📥</span>
                   </a>
                   <button
                     onClick={runBuildSimulation}
