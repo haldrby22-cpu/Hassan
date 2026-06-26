@@ -2,11 +2,12 @@ workflows:
   web-build:
     name: Build Web
     environment:
-      node: 20 # تأكد من تحديد نسخة Node.js مناسبة
+      node: 20
     scripts:
       - name: Install dependencies
         script: npm install
       - name: Build Web
-        script: npx expo export:web
+        # هذا هو الأمر الصحيح لمشروعك بناءً على ملف package.json
+        script: npm run build
     artifacts:
-      - dist/ # هذا هو المجلد الذي ينتج فيه Expo ملفات الويب عادة
+      - dist/
