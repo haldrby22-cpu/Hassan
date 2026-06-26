@@ -4,8 +4,6 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
-      # تعريف إصدار Gradle الذي يجب استخدامه
-      GRADLE_VERSION: "8.10"
     scripts:
       - name: Install dependencies
         script: npm install
@@ -16,7 +14,7 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # نستخدم gradle مباشرة بدلاً من ./gradlew لتجنب مشاكل الـ jar
+          # نستخدم gradle مباشرة من النظام لتجنب ملف الـ jar التالف
           gradle assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
