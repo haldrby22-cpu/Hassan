@@ -4,6 +4,8 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
+      # تعريف إصدار Gradle الذي يجب استخدامه
+      GRADLE_VERSION: "8.10"
     scripts:
       - name: Install dependencies
         script: npm install
@@ -11,15 +13,10 @@ workflows:
         script: npm run build
       - name: Sync android
         script: npx cap sync android
-      - name: Rebuild Gradle Wrapper
-        script: |
-          cd android
-          chmod +x gradlew
-          # هذا الأمر سيقوم بإنشاء ملفات الجار (jar) التالفة من جديد بشكل صحيح
-          ./gradlew wrapper --gradle-version 8.10
       - name: Build APK
         script: |
           cd android
-          ./gradlew assembleDebug
+          # نستخدم gradle مباشرة بدلاً من ./gradlew لتجنب مشاكل الـ jar
+          gradle assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
