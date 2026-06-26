@@ -1,17 +1,4 @@
 workflows:
-  android-debug:
-    name: Android Debug Workflow
-    environment:
-      groups:
-        - android_credentials
-    scripts:
-      - name: Install dependencies
-        script: npm install
-      - name: Build Android
-        script: ./gradlew assembleDebug
-    artifacts:
-      - android/app/build/outputs/apk/**/*.apk
-
   web-build:
     name: Web Build Workflow
     scripts:
