@@ -33,6 +33,8 @@ import OrderHistory from './components/OrderHistory';
 import AdminPanel from './components/AdminPanel';
 import MerchantPanel from './components/MerchantPanel';
 import DriverPanel from './components/DriverPanel';
+import AndroidBuilder from './components/AndroidBuilder';
+import RegisterModal from './components/RegisterModal';
 
 export default function App() {
   // Authentication & Portal selection state
@@ -60,6 +62,22 @@ export default function App() {
 
   // Navigation & Filtering
   const [activeTab, setActiveTab] = useState<'explore' | 'cart' | 'history' | 'tracking' | 'account'>('explore');
+  const [isAndroidBuilderOpen, setIsAndroidBuilderOpen] = useState(false);
+
+  // Customer registration/account verification states
+  const [customerAccount, setCustomerAccount] = useState<{ name: string; phone: string; address: string; password?: string } | null>(() => {
+    const saved = localStorage.getItem('customer_account_data');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [pendingCheckoutData, setPendingCheckoutData] = useState<{
+    address: string;
+    phone: string;
+    paymentMethod: string;
+    notes: string;
+    appliedPromo?: PromoCode;
+    discountAmount?: number;
+  } | null>(null);
 
   // Live clock for Android status bar simulation
   const [statusBarTime, setStatusBarTime] = useState('');
@@ -234,8 +252,55 @@ export default function App() {
     showToast('تم إفراغ السلة بالكامل', 'info');
   };
 
+  // Complete User Registration & execute pending checkout if any
+  const handleRegisterUser = (name: string, phone: string, address: string, password?: string) => {
+    const newAccount = { name, phone, address, password };
+    setCustomerAccount(newAccount);
+    localStorage.setItem('customer_account_data', JSON.stringify(newAccount));
+    setIsRegisterModalOpen(false);
+    
+    showToast('تم تسجيل حسابك وتفعيله بنجاح بمركز فرشوط! 🎉', 'success');
+
+    if (pendingCheckoutData) {
+      const data = pendingCheckoutData;
+      setPendingCheckoutData(null);
+      
+      // Directly complete the checkout with the newly verified details
+      setTimeout(() => {
+        // We call helper checkout with registered values
+        executeOrderCheckout(
+          data.address || address,
+          data.phone || phone,
+          data.paymentMethod,
+          data.notes,
+          data.appliedPromo,
+          data.discountAmount
+        );
+      }, 300);
+    }
+  };
+
   // Checkout Handler
   const handleCheckout = (
+    address: string,
+    phone: string,
+    paymentMethod: string,
+    notes: string,
+    appliedPromo?: PromoCode,
+    discountAmount?: number
+  ) => {
+    // Intercept checkout if not registered yet!
+    if (!customerAccount) {
+      setPendingCheckoutData({ address, phone, paymentMethod, notes, appliedPromo, discountAmount });
+      setIsRegisterModalOpen(true);
+      return;
+    }
+
+    executeOrderCheckout(address, phone, paymentMethod, notes, appliedPromo, discountAmount);
+  };
+
+  // Core execution of Checkout
+  const executeOrderCheckout = (
     address: string,
     phone: string,
     paymentMethod: string,
@@ -409,6 +474,16 @@ export default function App() {
                 <li>قم بتسجيل الخروج من المطعم وادخل كـ <strong className="text-red-500 font-bold">"كابتن توصيل / طيار"</strong> لقبول الطلب وتوصيله (كلمة المرور: <code className="bg-slate-200 px-1 rounded font-mono font-bold text-slate-600 text-[10px]">driver</code>).</li>
                 <li>تابع تحديث حالة الطلب فورياً في تتبع العميل المباشر!</li>
               </ol>
+
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setIsAndroidBuilderOpen(true)}
+                  className="w-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-xs py-3.5 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer transform hover:scale-[1.02]"
+                >
+                  <Smartphone className="h-4.5 w-4.5 animate-pulse" />
+                  <span>شغّل أداة بناء الـ APK وتوليد كود الأندرويد 📱</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -449,10 +524,27 @@ export default function App() {
           </div>
         )}
 
+        {isRegisterModalOpen && (
+          <RegisterModal
+            onClose={() => {
+              setIsRegisterModalOpen(false);
+              setPendingCheckoutData(null);
+            }}
+            onRegister={handleRegisterUser}
+            pendingAddress={pendingCheckoutData?.address}
+            pendingPhone={pendingCheckoutData?.phone}
+          />
+        )}
+
         {/* Scrollable Container inside Phone Mockup */}
         <div className="flex-grow overflow-y-auto flex flex-col relative bg-slate-50" style={{ height: 'calc(100% - 32px)' }}>
           
-          {!isLoggedIn ? (
+          {isAndroidBuilderOpen ? (
+            <AndroidBuilder 
+              onClose={() => setIsAndroidBuilderOpen(false)}
+              appName="طلبات فرشوط"
+            />
+          ) : !isLoggedIn ? (
             /* Unified Landing & Login Selector Gateway */
             <div className="flex-grow flex flex-col justify-between bg-slate-50 p-6 overflow-y-auto">
               <div className="space-y-6 pt-6">
@@ -909,7 +1001,7 @@ export default function App() {
                   🧑‍💼
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-extrabold text-slate-800 text-sm">عميل طلبات فرشوط</h3>
+                  <h3 className="font-extrabold text-slate-800 text-sm">{customerAccount?.name || "عميل طلبات فرشوط"}</h3>
                   <span className="inline-block bg-slate-100 text-slate-500 text-[9px] font-bold px-2.5 py-1 rounded-full">
                     مستكشف مركز فرشوط النشط 📍
                   </span>
@@ -925,7 +1017,12 @@ export default function App() {
                     <label className="text-[10px] font-bold text-slate-400">الاسم الكامل</label>
                     <input
                       type="text"
-                      defaultValue="حسن الدربي"
+                      value={customerAccount?.name || "حسن الدربي"}
+                      onChange={(e) => {
+                        const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), name: e.target.value };
+                        setCustomerAccount(updated);
+                        localStorage.setItem('customer_account_data', JSON.stringify(updated));
+                      }}
                       className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500"
                     />
                   </div>
@@ -933,8 +1030,13 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-1">
                     <label className="text-[10px] font-bold text-slate-400">رقم الهاتف للاتصال والتحقق</label>
                     <input
-                      type="tel"
-                      defaultValue="+20 1023456789"
+                      type="text"
+                      value={customerAccount?.phone || "+20 1023456789"}
+                      onChange={(e) => {
+                        const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), phone: e.target.value };
+                        setCustomerAccount(updated);
+                        localStorage.setItem('customer_account_data', JSON.stringify(updated));
+                      }}
                       className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-left"
                       dir="ltr"
                     />
@@ -943,7 +1045,12 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-1">
                     <label className="text-[10px] font-bold text-slate-400">عنوان التوصيل الافتراضي بفرشوط</label>
                     <textarea
-                      defaultValue="قنا، مركز فرشوط - الشارع الجديد بجوار مسجد الرحمن"
+                      value={customerAccount?.address || "قنا، مركز فرشوط - الشارع الجديد بجوار مسجد الرحمن"}
+                      onChange={(e) => {
+                        const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), address: e.target.value };
+                        setCustomerAccount(updated);
+                        localStorage.setItem('customer_account_data', JSON.stringify(updated));
+                      }}
                       rows={2}
                       className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 resize-none"
                     />
@@ -956,6 +1063,17 @@ export default function App() {
                 <h4 className="font-extrabold text-[10px] text-slate-400 pb-1">إعدادات التطبيق الإضافية</h4>
                 
                 <div className="space-y-1.5">
+                  <button 
+                    onClick={() => setIsAndroidBuilderOpen(true)}
+                    className="w-full text-right bg-gradient-to-r from-red-500/10 to-rose-500/10 hover:from-red-500/20 hover:to-rose-500/20 border border-red-100 px-3.5 py-3 rounded-2xl text-xs font-black text-red-600 flex items-center justify-between transition-all cursor-pointer shadow-sm mb-1.5"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm animate-bounce">🤖</span>
+                      <span>منشئ ومبرمج تطبيق أندرويد (APK)</span>
+                    </span>
+                    <span className="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded-full font-black animate-pulse">جديد 5G</span>
+                  </button>
+
                   <button className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors">
                     <span className="flex items-center gap-2">
                       <span className="text-sm">🎫</span>
@@ -987,8 +1105,10 @@ export default function App() {
                 <button
                   onClick={() => {
                     setIsLoggedIn(false);
+                    setCustomerAccount(null);
                     localStorage.removeItem('talabat_is_logged_in');
-                    setToast({ type: 'info', message: 'تم الخروج من حساب العميل للواجهة الذكية بنجاح' });
+                    localStorage.removeItem('customer_account_data');
+                    setToast({ type: 'info', message: 'تم الخروج وحذف بيانات الحساب المؤقتة لتسهيل اختبار التسجيل من جديد' });
                   }}
                   className="w-full bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl py-3 text-xs font-black transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
