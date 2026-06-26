@@ -4,6 +4,7 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
+      java: 21  # إضافة هذا السطر يحل مشكلة الـ source release
     scripts:
       - name: Install dependencies
         script: npm install
@@ -14,7 +15,6 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          # نستخدم gradle مباشرة من النظام لتجنب ملف الـ jar التالف
           gradle assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
