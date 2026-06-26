@@ -6,7 +6,6 @@ workflows:
       node: latest
     scripts:
       - name: Install dependencies
-        # نستخدم npm install لأنها أقل تعقيداً وأكثر مرونة
         script: npm install
       - name: Build web assets
         script: npm run build
@@ -15,6 +14,7 @@ workflows:
       - name: Build APK
         script: |
           cd android
+          chmod +x gradlew  # هذا السطر يضمن دائماً توفر الصلاحية
           ./gradlew assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
