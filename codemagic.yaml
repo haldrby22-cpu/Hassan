@@ -11,10 +11,15 @@ workflows:
         script: npm run build
       - name: Sync android
         script: npx cap sync android
+      - name: Rebuild Gradle Wrapper
+        script: |
+          cd android
+          chmod +x gradlew
+          # هذا الأمر سيقوم بإنشاء ملفات الجار (jar) التالفة من جديد بشكل صحيح
+          ./gradlew wrapper --gradle-version 8.10
       - name: Build APK
         script: |
           cd android
-          chmod +x gradlew  # هذا السطر يضمن دائماً توفر الصلاحية
           ./gradlew assembleDebug
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
