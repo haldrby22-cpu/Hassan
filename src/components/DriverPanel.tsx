@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../types';
+import { playOrderAlertSound, playChimeSound } from '../utils/audio';
 import {
   Bike,
   Navigation,
@@ -109,6 +110,30 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
   const availableOrders = orders.filter(
     (o) => (o.status === 'received' || o.status === 'preparing') && o.id !== activeClaimedOrderId
   );
+
+  // Sound alarm state for new available deliveries (Captains)
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('driver_sound_enabled') !== 'false';
+  });
+
+  const availableCount = availableOrders.length;
+  const [prevAvailableCount, setPrevAvailableCount] = useState(availableCount);
+
+  useEffect(() => {
+    if (isAuthenticated && soundEnabled && availableCount > prevAvailableCount) {
+      playOrderAlertSound();
+    }
+    setPrevAvailableCount(availableCount);
+  }, [availableCount, prevAvailableCount, isAuthenticated, soundEnabled]);
+
+  const toggleSound = () => {
+    const nextVal = !soundEnabled;
+    setSoundEnabled(nextVal);
+    localStorage.setItem('driver_sound_enabled', nextVal.toString());
+    if (nextVal) {
+      playChimeSound();
+    }
+  };
 
   const handleClaimOrder = (orderId: string) => {
     if (activeClaimedOrderId) {
@@ -245,6 +270,41 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
           <LogOut className="h-4 w-4" />
           <span>تسجيل الخروج</span>
         </button>
+      </div>
+
+      {/* Driver Sound Alert Control Panel */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl p-5 border border-slate-700 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="h-11 w-11 rounded-2xl bg-slate-100/10 text-slate-100 flex items-center justify-center text-xl shrink-0 animate-pulse border border-white/5">
+            🔔
+          </div>
+          <div className="text-right">
+            <h4 className="font-extrabold text-xs text-white">نظام جرس التنبيه للطلبات المتاحة للطيارين</h4>
+            <p className="text-[10px] text-slate-300 font-bold mt-0.5">عند نزول طلب جديد جاهز للتوصيل بفرشوط، سيصدر رنين تنبيه لتنبيهك لسرعة قبوله.</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => playOrderAlertSound()}
+            className="bg-white/10 hover:bg-white/20 text-white border border-white/10 text-[10px] font-black px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <span>🔊 اختبار جرس التنبيه</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={toggleSound}
+            className={`text-[10px] font-black px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              soundEnabled 
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md' 
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'
+            }`}
+          >
+            <span>{soundEnabled ? '🔔 الجرس مفعّل' : '🔕 جرس صامت'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Driver Stats/Wallet Row */}

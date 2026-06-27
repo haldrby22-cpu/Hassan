@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shop, MenuItem, Order, OrderStatus } from '../types';
+import { playOrderAlertSound, playChimeSound } from '../utils/audio';
 import {
   Store,
   Clock,
@@ -166,6 +167,31 @@ export default function MerchantPanel({
 
   // Filter orders and products for the selected shop
   const shopOrders = orders.filter((o) => o.shopId === activeShop?.id);
+
+  // Audio alert settings for incoming orders
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('merchant_sound_enabled') !== 'false';
+  });
+
+  const receivedOrdersCount = shopOrders.filter((o) => o.status === 'received').length;
+  const [prevReceivedCount, setPrevReceivedCount] = useState(receivedOrdersCount);
+
+  useEffect(() => {
+    if (isAuthenticated && soundEnabled && receivedOrdersCount > prevReceivedCount) {
+      playOrderAlertSound();
+    }
+    setPrevReceivedCount(receivedOrdersCount);
+  }, [receivedOrdersCount, prevReceivedCount, isAuthenticated, soundEnabled]);
+
+  const toggleSound = () => {
+    const nextVal = !soundEnabled;
+    setSoundEnabled(nextVal);
+    localStorage.setItem('merchant_sound_enabled', nextVal.toString());
+    if (nextVal) {
+      playChimeSound();
+    }
+  };
+
   const shopProducts = menuItems.filter((m) => m.shopId === activeShop?.id);
 
   // Stats
@@ -569,6 +595,41 @@ ${shops.map(shop => `- مطعم: ${shop.name} | كلمة المرور: ${shop.pa
                 className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shrink-0 text-center"
               >
                 نسخ الرابط المباشر
+              </button>
+            </div>
+          </div>
+
+          {/* Sound Alert Control Panel */}
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl p-5 border border-slate-700 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center text-xl shrink-0 animate-pulse border border-red-500/20">
+                🔔
+              </div>
+              <div className="text-right">
+                <h4 className="font-extrabold text-xs text-white">نظام التنبيهات الصوتية التلقائي للطلبات الجديدة</h4>
+                <p className="text-[10px] text-slate-300 font-bold mt-0.5">عندما يرسل العميل طلباً جديداً لفرعك بفرشوط، سيصدر التطبيق رنيناً للتنبيه.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => playOrderAlertSound()}
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/10 text-[10px] font-black px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🔊 اختبار رنين التنبيه</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={toggleSound}
+                className={`text-[10px] font-black px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                  soundEnabled 
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md' 
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'
+                }`}
+              >
+                <span>{soundEnabled ? '🔔 التنبيهات مفعّلة' : '🔕 التنبيهات صامتة'}</span>
               </button>
             </div>
           </div>

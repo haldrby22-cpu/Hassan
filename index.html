@@ -25,7 +25,32 @@
       if ('serviceWorker' in navigator && !isNativeApp) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
-            .then((reg) => console.log('Service worker registered successfully:', reg.scope))
+            .then((reg) => {
+              console.log('Service worker registered successfully:', reg.scope);
+              
+              // Expose registration for manual update check from React app
+              window.swRegistration = reg;
+
+              // If there's already an update waiting
+              if (reg.waiting) {
+                window.dispatchEvent(new CustomEvent('sw-update-available'));
+              }
+
+              // Listen for updatefound
+              reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed') {
+                      if (navigator.serviceWorker.controller) {
+                        // New update content is available!
+                        window.dispatchEvent(new CustomEvent('sw-update-available'));
+                      }
+                    }
+                  };
+                }
+              };
+            })
             .catch((err) => console.error('Service worker registration failed:', err));
         });
       }

@@ -110,6 +110,66 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
+  // Update Notification States
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [isSimulatedUpdate, setIsSimulatedUpdate] = useState(false);
+  const [showAppInstalledModal, setShowAppInstalledModal] = useState(false);
+
+  useEffect(() => {
+    const handleUpdateEvent = () => {
+      setIsUpdateAvailable(true);
+      setIsSimulatedUpdate(false);
+      showToast('🚀 يتوفر تحديث جديد لـ طلبات فرشوط! انقر لعرض تفاصيل التحديث والتثبيت المباشر.', 'info');
+    };
+
+    window.addEventListener('sw-update-available', handleUpdateEvent);
+    return () => {
+      window.removeEventListener('sw-update-available', handleUpdateEvent);
+    };
+  }, []);
+
+  const handleCheckForUpdates = () => {
+    setCheckingForUpdates(true);
+    
+    // Attempt real Service Worker update check
+    const reg = (window as any).swRegistration;
+    if (reg) {
+      reg.update().catch((err: any) => console.log('SW manual update check failed:', err));
+    }
+
+    setTimeout(() => {
+      setCheckingForUpdates(false);
+      
+      // Open the Update Modal. If a real SW update is waiting, it will be handled as real,
+      // otherwise we allow them to test/simulate the update notification in the UI.
+      setShowUpdateModal(true);
+    }, 1500);
+  };
+
+  const triggerSimulatedUpdate = () => {
+    setIsUpdateAvailable(true);
+    setIsSimulatedUpdate(true);
+    setShowUpdateModal(true);
+    showToast('🚀 تم استلام إشعار بوجود تحديث جديد (محاكاة)!', 'success');
+  };
+
+  const handleApplyUpdate = () => {
+    showToast('🔄 جاري تثبيت التحديث وإعادة تشغيل التطبيق...', 'success');
+    setTimeout(() => {
+      // Clear service worker cache if not simulated
+      if (!isSimulatedUpdate) {
+        if ('caches' in window) {
+          caches.keys().then((names) => {
+            for (let name of names) caches.delete(name);
+          });
+        }
+      }
+      window.location.reload();
+    }, 1500);
+  };
+
   // Toast notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
@@ -619,6 +679,261 @@ export default function App() {
 
         {isSupportModalOpen && (
           <SupportModal onClose={() => setIsSupportModalOpen(false)} />
+        )}
+
+        {/* Update Notification Ribbon / Banner */}
+        {isUpdateAvailable && !showUpdateModal && (
+          <div 
+            onClick={() => setShowUpdateModal(true)}
+            className="absolute top-14 left-4 right-4 z-40 bg-gradient-to-r from-red-600 to-rose-500 text-white rounded-2xl px-4 py-3 shadow-xl border border-red-500/20 flex items-center justify-between gap-3 animate-pulse cursor-pointer hover:brightness-110 transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">🚀</span>
+              <div className="text-right">
+                <h5 className="text-[10px] font-black tracking-tight text-white/90">يتوفر إصدار جديد لبرنامج طلبات فرشوط</h5>
+                <p className="text-[9px] text-red-50/85 font-bold">انقر هنا لتحديث التطبيق مجاناً فوراً v1.1.0</p>
+              </div>
+            </div>
+            <span className="text-xs font-black bg-white/20 px-2 py-0.5 rounded-lg shrink-0">تحديث 🔄</span>
+          </div>
+        )}
+
+        {/* System Update Details & Simulation Modal */}
+        {showUpdateModal && (
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-[340px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90%]">
+              
+              {/* Header with App Logo */}
+              <div className="bg-gradient-to-tr from-red-600 to-red-500 p-6 text-center text-white relative shrink-0">
+                <button 
+                  onClick={() => setShowUpdateModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer bg-black/10 hover:bg-black/20 p-1.5 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="mx-auto h-16 w-16 rounded-[22px] bg-white p-0.5 shadow-xl flex items-center justify-center mb-3">
+                  <img
+                    src="/pwa_icon.jpg"
+                    alt="شعار طلبات فرشوط"
+                    className="h-full w-full object-cover rounded-[20px]"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <h3 className="font-black text-sm">تحديثات تطبيق طلبات فرشوط</h3>
+                <p className="text-[9px] text-red-100 font-bold mt-0.5">مركز تحديثات النظام والـ PWA المباشر</p>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 overflow-y-auto space-y-4 text-slate-700">
+                {isUpdateAvailable ? (
+                  <div className="space-y-4">
+                    <div className="text-center space-y-1">
+                      <span className="inline-block bg-emerald-50 text-emerald-600 text-[10px] font-extrabold px-3 py-1 rounded-full border border-emerald-100 animate-pulse">
+                        🎉 يتوفر إصدار جديد بالكامل (v1.1.0)
+                      </span>
+                      <p className="text-[11px] text-slate-500 font-bold pt-1">
+                        نوصي بالتحديث فوراً للحصول على أداء أسرع وأكثر استقراراً بمركز فرشوط.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="font-extrabold text-[10px] text-slate-400">ما الجديد في هذا التحديث؟</h4>
+                      <div className="space-y-2 text-right">
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5">
+                          <span className="text-base shrink-0 animate-bounce">⚡</span>
+                          <div>
+                            <h5 className="text-[10px] font-black text-slate-800">تحسين تتبع الكباتن</h5>
+                            <p className="text-[9px] text-slate-500 font-bold">دقة أعلى وتحديث لحظي لموقع كابتن التوصيل لطلبك بفرشوط.</p>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5">
+                          <span className="text-base shrink-0">🎨</span>
+                          <div>
+                            <h5 className="text-[10px] font-black text-slate-800">واجهات وقوائم طعام متطورة</h5>
+                            <p className="text-[9px] text-slate-500 font-bold">سرعة تصفح فائقة وقوائم مطاعم متجاوبة تدعم البحث الذكي.</p>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-start gap-2.5">
+                          <span className="text-base shrink-0">🔒</span>
+                          <div>
+                            <h5 className="text-[10px] font-black text-slate-800">أمان وحماية محسّنة</h5>
+                            <p className="text-[9px] text-slate-500 font-bold">نظام تشفير فائق الأمان لحسابات العملاء وكوبونات الخصم والخصومات.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 space-y-4">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                      ✓
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-xs text-slate-800">تطبيقك محدث بالكامل!</h4>
+                      <p className="text-[10px] text-slate-400 font-bold">أنت تستخدم أحدث إصدار متوفر حالياً (v1.0.0)</p>
+                    </div>
+
+                    <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-3 text-right space-y-1.5">
+                      <h5 className="text-[9px] font-black text-amber-800 flex items-center gap-1">
+                        <span>💡</span>
+                        <span>ميزة اختبار ومحاكاة التحديث:</span>
+                      </h5>
+                      <p className="text-[9px] text-slate-600 font-bold leading-relaxed">
+                        بما أن هذا تطبيق تجريبي متكامل، يمكنك الضغط على الزر أدناه لمحاكاة وصول إشعار تحديث جديد v1.1.0 لتجربة المظهر وتفاعل الإشعارات التلقائية للمستخدمين.
+                      </p>
+                      <button
+                        onClick={triggerSimulatedUpdate}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] py-2 px-3 rounded-xl transition-all cursor-pointer text-center"
+                      >
+                        محاكاة استلام تحديث جديد v1.1.0 🚀
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 shrink-0">
+                {isUpdateAvailable ? (
+                  <>
+                    <button
+                      onClick={handleApplyUpdate}
+                      className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black text-xs py-3 rounded-2xl shadow-md shadow-red-100 transition-all text-center cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span>تحديث الآن وإعادة التشغيل 🔄</span>
+                    </button>
+                    <button
+                      onClick={() => setShowUpdateModal(false)}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-black text-xs px-4 py-3 rounded-2xl transition-all cursor-pointer text-center"
+                    >
+                      لاحقاً
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowUpdateModal(false)}
+                    className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black text-xs py-3 rounded-2xl shadow-md transition-all text-center cursor-pointer"
+                  >
+                    حسناً، إغلاق النافذة
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* App Installed Representation / Mockup Modal */}
+        {showAppInstalledModal && (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" dir="rtl">
+            <div className="bg-white rounded-[32px] w-full max-w-[340px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92%] animate-slide-up">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-tr from-slate-900 to-slate-800 p-5 text-center text-white relative shrink-0">
+                <button 
+                  onClick={() => setShowAppInstalledModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer bg-white/10 hover:bg-white/20 p-1.5 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <span className="text-2xl block mb-2">📱</span>
+                <h3 className="font-black text-sm">تطبيق طلبات فرشوط على هاتفك</h3>
+                <p className="text-[10px] text-red-400 font-extrabold mt-0.5">محاكاة حية لمظهر الأيقونة بعد التثبيت</p>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 overflow-y-auto space-y-4 text-right">
+                <p className="text-[11px] text-slate-500 font-bold leading-relaxed text-center">
+                  عندما تقوم بتثبيت التطبيق من المتصفح، سيظهر على شاشة هاتفك الرئيسية كبرنامج حقيقي فائق السرعة وبدون استهلاك للإنترنت.
+                </p>
+
+                {/* Simulated Android Home Screen Grid */}
+                <div className="bg-gradient-to-b from-blue-900 to-indigo-950 rounded-3xl p-4 shadow-inner relative overflow-hidden h-[180px] flex flex-col justify-between border border-white/10">
+                  {/* Subtle Wallpaper glow pattern */}
+                  <div className="absolute -top-12 -left-12 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl" />
+                  
+                  {/* Clock & Widget */}
+                  <div className="text-center pt-2 relative z-10">
+                    <span className="font-mono text-2xl font-black text-white/95 tracking-wide drop-shadow">12:30</span>
+                    <p className="text-[8px] text-white/60 font-black mt-0.5">السبت، 27 يونيو 📍 فرشوط</p>
+                  </div>
+
+                  {/* Icon Row */}
+                  <div className="grid grid-cols-4 gap-2 text-center pb-2 relative z-10">
+                    
+                    {/* Mock App 1 */}
+                    <div className="space-y-1 flex flex-col items-center">
+                      <div className="h-10 w-10 rounded-[14px] bg-emerald-500 flex items-center justify-center text-lg shadow-md border border-white/5 cursor-not-allowed">
+                        💬
+                      </div>
+                      <span className="text-[8px] text-white/80 font-bold tracking-tight">واتساب</span>
+                    </div>
+
+                    {/* OUR STAR APP: Talabat Farshoot */}
+                    <div className="space-y-1 flex flex-col items-center relative scale-110">
+                      {/* Active notification bubble */}
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white font-black text-[7px] px-1 py-0.5 rounded-full leading-none z-20 shadow animate-pulse border border-white/20">
+                        طلب
+                      </span>
+                      <div className="h-10 w-10 rounded-[14px] bg-white p-0.5 shadow-[0_4px_12px_rgba(239,68,68,0.4)] border-2 border-red-500 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src="/pwa_icon.jpg" 
+                          alt="طلبات فرشوط" 
+                          className="h-full w-full object-cover rounded-[11px]"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <span className="text-[8px] text-red-300 font-extrabold tracking-tight drop-shadow-sm">طلبات فرشوط</span>
+                    </div>
+
+                    {/* Mock App 2 */}
+                    <div className="space-y-1 flex flex-col items-center">
+                      <div className="h-10 w-10 rounded-[14px] bg-blue-600 flex items-center justify-center text-lg shadow-md border border-white/5 cursor-not-allowed">
+                        👥
+                      </div>
+                      <span className="text-[8px] text-white/80 font-bold tracking-tight">فيسبوك</span>
+                    </div>
+
+                    {/* Mock App 3 */}
+                    <div className="space-y-1 flex flex-col items-center">
+                      <div className="h-10 w-10 rounded-[14px] bg-sky-500 flex items-center justify-center text-lg shadow-md border border-white/5 cursor-not-allowed">
+                        📞
+                      </div>
+                      <span className="text-[8px] text-white/80 font-bold tracking-tight">الهاتف</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Quick Steps Instructions */}
+                <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                  <h4 className="font-extrabold text-[10px] text-slate-400">💡 كيف تقوم بتثبيت التطبيق الآن؟</h4>
+                  <ul className="space-y-1.5 text-[10px] text-slate-600 font-bold">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-red-500">1.</span>
+                      <span>إذا كنت تستخدم هاتف <b>أندرويد</b>: انقر على الثلاث نقاط بأعلى المتصفح ثم اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"تثبيت التطبيق"</b>.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-red-500">2.</span>
+                      <span>إذا كنت تستخدم هاتف <b>آيفون (iOS)</b>: انقر على زر مشاركة السفاري <span className="inline-block px-1 bg-slate-200 rounded">📤</span> بالأسفل ثم اختر <b>"إضافة إلى الشاشة الرئيسية"</b>.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
+                <button
+                  onClick={() => setShowAppInstalledModal(false)}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-xs py-3 rounded-2xl transition-all cursor-pointer text-center"
+                >
+                  حسناً، فهمت ذلك
+                </button>
+              </div>
+
+            </div>
+          </div>
         )}
 
         {/* Scrollable Container inside Phone Mockup */}
@@ -1166,6 +1481,35 @@ export default function App() {
                       <span>كوبونات الخصم النشطة بفرشوط</span>
                     </span>
                     <span className="text-[10px] bg-red-100 text-red-500 px-2 py-0.5 rounded-full font-bold">1 متاح</span>
+                  </button>
+
+                  <button 
+                    onClick={handleCheckForUpdates}
+                    disabled={checkingForUpdates}
+                    className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🔄</span>
+                      <span>{checkingForUpdates ? 'جاري التحقق من وجود تحديثات...' : 'التحقق من وجود تحديثات جديدة'}</span>
+                    </span>
+                    <span className="text-[10px] bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1">
+                      {checkingForUpdates && <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />}
+                      <span>v1.0.0</span>
+                    </span>
+                  </button>
+
+                  <button 
+                    onClick={() => setShowAppInstalledModal(true)}
+                    className="w-full text-right hover:bg-red-50/50 hover:text-red-700 border border-dashed border-red-200/60 bg-red-50/10 px-3 py-2.5 rounded-xl text-xs font-black text-red-600 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">📱</span>
+                      <span>شكل أيقونة التطبيق مثبت على الهاتف</span>
+                    </span>
+                    <span className="text-[10px] bg-red-500 text-white px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                      <span>شاهد الآن</span>
+                    </span>
                   </button>
 
                   <button 
