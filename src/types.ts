@@ -58,6 +58,15 @@ export interface Order {
   paymentMethod: string;
   notes?: string;
   trackingProgress: number; // 0 to 100
+  // Scheduling fields
+  isScheduled?: boolean;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  // Rating & review fields
+  restaurantRating?: number;
+  restaurantReview?: string;
+  driverRating?: number;
+  driverReview?: string;
 }
 
 export interface PromoCode {

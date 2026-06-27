@@ -26,6 +26,7 @@ interface OrderTrackerProps {
   order: Order;
   onClose: () => void;
   onUpdateStatus: (status: OrderStatus, progress: number) => void;
+  onUpdateRatings?: (orderId: string, restaurantRating: number, restaurantReview: string, driverRating: number, driverReview: string) => void;
 }
 
 interface ChatMessage {
@@ -35,10 +36,17 @@ interface ChatMessage {
   time: string;
 }
 
-export default function OrderTracker({ order, onClose, onUpdateStatus }: OrderTrackerProps) {
+export default function OrderTracker({ order, onClose, onUpdateStatus, onUpdateRatings }: OrderTrackerProps) {
   // Demo simulation state
   const [isSimulating, setIsSimulating] = useState(true);
   
+  // Rating States
+  const [restaurantRating, setRestaurantRating] = useState(order.restaurantRating || 0);
+  const [restaurantReview, setRestaurantReview] = useState(order.restaurantReview || '');
+  const [driverRating, setDriverRating] = useState(order.driverRating || 0);
+  const [driverReview, setDriverReview] = useState(order.driverReview || '');
+  const [ratingSubmitted, setRatingSubmitted] = useState(!!(order.restaurantRating || order.driverRating));
+
   // Interactive calling and chatting states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -237,6 +245,20 @@ export default function OrderTracker({ order, onClose, onUpdateStatus }: OrderTr
     return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
   };
 
+  const [ratingError, setRatingError] = useState('');
+
+  const handleSubmitRatings = () => {
+    if (restaurantRating === 0 || driverRating === 0) {
+      setRatingError('الرجاء اختيار التقييم بالنجوم لكل من المطعم والطيار أولاً 🌟');
+      return;
+    }
+    setRatingError('');
+    if (onUpdateRatings) {
+      onUpdateRatings(order.id, restaurantRating, restaurantReview, driverRating, driverReview);
+    }
+    setRatingSubmitted(true);
+  };
+
   return (
     <div className="space-y-6 relative">
       
@@ -262,36 +284,6 @@ export default function OrderTracker({ order, onClose, onUpdateStatus }: OrderTr
             <span>تتبع فوري ونشط</span>
           </div>
         )}
-      </div>
-
-      {/* Simulator Quick Testing Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-850 text-white rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-md border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">
-            🤖
-          </div>
-          <div>
-            <h4 className="font-bold text-xs">مساعد محاكاة التوصيل الذكي</h4>
-            <p className="text-[10px] text-slate-300 font-medium">لتسريع واختبار مراحل الطلب والطيار لفرشوط.</p>
-          </div>
-        </div>
-        <div className="flex gap-2 shrink-0 w-full md:w-auto">
-          <button
-            onClick={advanceSimulation}
-            disabled={order.status === 'delivered'}
-            className="flex-1 md:flex-initial bg-red-500 hover:bg-red-600 text-white text-[10px] font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <Play className="h-3.5 w-3.5" />
-            <span>المرحلة التالية</span>
-          </button>
-          <button
-            onClick={resetSimulation}
-            className="flex-1 md:flex-initial bg-white/10 hover:bg-white/20 text-white text-[10px] font-black px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>إعادة تشغيل</span>
-          </button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -355,6 +347,134 @@ export default function OrderTracker({ order, onClose, onUpdateStatus }: OrderTr
               })}
             </div>
           </div>
+
+          {/* Rating & Review Panel (Shows when order is delivered) */}
+          {order.status === 'delivered' && (
+            <div className="bg-white rounded-3xl p-6 border-2 border-red-100 shadow-md space-y-6">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-50">
+                <span className="text-2xl animate-bounce">⭐</span>
+                <div>
+                  <h4 className="font-extrabold text-xs sm:text-sm text-slate-800">تقييم الطلب والتوصيل بفرشوط</h4>
+                  <p className="text-[9px] text-slate-400 font-bold">رأيك يهمنا لتحسين جودة الخدمة ودعم كباتن التوصيل</p>
+                </div>
+              </div>
+
+              {!ratingSubmitted ? (
+                <div className="space-y-5">
+                  {/* Restaurant Rating */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-600">🍔 قيم المطعم ({order.shopName})</label>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRestaurantRating(star)}
+                          className="text-2xl transition-all duration-150 hover:scale-125 focus:outline-none cursor-pointer"
+                        >
+                          <Star
+                            className={`h-6 w-6 ${
+                              star <= restaurantRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={restaurantReview}
+                      onChange={(e) => setRestaurantReview(e.target.value)}
+                      placeholder="اكتب تعليقك عن جودة الطعام والتغليف (اختياري)..."
+                      rows={2}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-red-400 focus:bg-white placeholder-slate-400 transition-all"
+                    />
+                  </div>
+
+                  {/* Driver Rating */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-600">🏍️ قيم كابتن التوصيل (أحمد حسن)</label>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setDriverRating(star)}
+                          className="text-2xl transition-all duration-150 hover:scale-125 focus:outline-none cursor-pointer"
+                        >
+                          <Star
+                            className={`h-6 w-6 ${
+                              star <= driverRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={driverReview}
+                      onChange={(e) => setDriverReview(e.target.value)}
+                      placeholder="اكتب تعليقك عن سرعة التوصيل وأسلوب الكابتن (اختياري)..."
+                      rows={2}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-red-400 focus:bg-white placeholder-slate-400 transition-all"
+                    />
+                  </div>
+
+                  {ratingError && (
+                    <p className="text-xs text-red-500 font-bold">{ratingError}</p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSubmitRatings}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-black text-xs py-3 rounded-xl shadow-md shadow-red-100 transition-all text-center cursor-pointer"
+                  >
+                    إرسال التقييم الآن ✨
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl space-y-4 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-emerald-800">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                    <span className="text-xs font-black">تم إرسال تقييمك بنجاح! شكراً لمساعدتنا في التطوير 💖</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-emerald-100 text-xs">
+                    <div className="space-y-1">
+                      <span className="block font-bold text-slate-500">تقييم المطعم:</span>
+                      <div className="flex gap-0.5 items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= restaurantRating ? 'fill-amber-400 text-amber-400 font-bold' : 'text-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {restaurantReview && (
+                        <p className="text-[11px] text-slate-600 font-medium italic">"{restaurantReview}"</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="block font-bold text-slate-500">تقييم الكابتن:</span>
+                      <div className="flex gap-0.5 items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= driverRating ? 'fill-amber-400 text-amber-400 font-bold' : 'text-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {driverReview && (
+                        <p className="text-[11px] text-slate-600 font-medium italic">"{driverReview}"</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Delivery Driver Info */}
           {order.status !== 'received' && (

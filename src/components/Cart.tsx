@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Trash2, Plus, Minus, CreditCard, Landmark, Truck, ShieldCheck, Ticket } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, CreditCard, Landmark, Truck, ShieldCheck, Ticket, Calendar, Clock } from 'lucide-react';
 import { CartItem, PromoCode } from '../types';
 import { PROMO_CODES } from '../data';
 
@@ -13,7 +13,10 @@ interface CartProps {
     paymentMethod: string,
     notes: string,
     appliedPromo?: PromoCode,
-    discountAmount?: number
+    discountAmount?: number,
+    isScheduled?: boolean,
+    scheduledDate?: string,
+    scheduledTime?: string
   ) => void;
   deliveryFee: number;
 }
@@ -30,6 +33,47 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
   const [formErrors, setFormErrors] = useState<{ address?: string; phone?: string }>({});
+
+  // Scheduling state
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const date = new Date();
+    const weekdays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const formattedDate = date.toLocaleDateString('ar-EG', { month: 'long', day: 'numeric' });
+    return `اليوم (${formattedDate})`;
+  });
+  const [scheduledTime, setScheduledTime] = useState('06:00 م - 07:00 م');
+
+  const getNextDays = () => {
+    const days = [];
+    const weekdays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    for (let i = 0; i < 3; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      const label = i === 0 ? 'اليوم' : i === 1 ? 'غداً' : weekdays[date.getDay()];
+      const formattedDate = date.toLocaleDateString('ar-EG', { month: 'long', day: 'numeric' });
+      days.push({
+        value: `${label} (${formattedDate})`,
+        label: `${label} - ${formattedDate}`,
+      });
+    }
+    return days;
+  };
+
+  const timeSlots = [
+    '12:00 م - 01:00 م',
+    '01:00 م - 02:00 م',
+    '02:00 م - 03:00 م',
+    '03:00 م - 04:00 م',
+    '04:00 م - 05:00 م',
+    '05:00 م - 06:00 م',
+    '06:00 م - 07:00 م',
+    '07:00 م - 08:00 م',
+    '08:00 م - 09:00 م',
+    '09:00 م - 10:00 م',
+    '10:00 م - 11:00 م',
+    '11:00 م - 12:00 ص'
+  ];
 
   const subtotal = cartItems.reduce((acc, curr) => acc + curr.item.price * curr.quantity, 0);
 
@@ -97,7 +141,17 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
     }
 
     setFormErrors({});
-    onCheckout(address, phone, paymentMethod, notes, appliedPromo || undefined, discountAmount);
+    onCheckout(
+      address,
+      phone,
+      paymentMethod,
+      notes,
+      appliedPromo || undefined,
+      discountAmount,
+      isScheduled,
+      isScheduled ? scheduledDate : undefined,
+      isScheduled ? scheduledTime : undefined
+    );
   };
 
   if (cartItems.length === 0) {
@@ -283,6 +337,83 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
                 rows={2}
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 placeholder-slate-300"
               />
+            </div>
+
+            {/* Scheduling option */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">وقت التوصيل</label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setIsScheduled(false)}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    !isScheduled
+                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <Truck className="h-4 w-4" />
+                  <span className="text-xs">توصيل فوري (أسرع شيء)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsScheduled(true)}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    isScheduled
+                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-xs">جدولة الطلب (وقت لاحق)</span>
+                </button>
+              </div>
+
+              {isScheduled && (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">اختر اليوم</label>
+                      <div className="relative">
+                        <select
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:border-red-400 appearance-none font-bold"
+                        >
+                          {getNextDays().map((day) => (
+                            <option key={day.value} value={day.value}>
+                              {day.label}
+                            </option>
+                          ))}
+                        </select>
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">اختر موعد الاستلام</label>
+                      <div className="relative">
+                        <select
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:border-red-400 appearance-none font-bold"
+                        >
+                          {timeSlots.map((slot) => (
+                            <option key={slot} value={slot}>
+                              {slot}
+                            </option>
+                          ))}
+                        </select>
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-red-500 font-bold leading-normal">
+                    💡 سيقوم المتجر بتحضير الطلب وتسليمه للطيار ليتطابق التوصيل مع الموعد المجدد المختار أعلاه بدقة.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Payment Method Selector */}

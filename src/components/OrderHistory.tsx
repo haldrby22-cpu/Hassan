@@ -81,9 +81,16 @@ export default function OrderHistory({ orders, onReorder, onTrack }: OrderHistor
                   />
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm sm:text-base">{order.shopName}</h4>
-                    <div className="flex items-center gap-1 text-xs text-slate-400 font-medium mt-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{order.date}</span>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{order.date}</span>
+                      </div>
+                      {order.isScheduled && (
+                        <div className="inline-flex items-center gap-1 text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded-md font-bold w-max">
+                          <span>📅 طلب مجدول: {order.scheduledDate} ({order.scheduledTime})</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

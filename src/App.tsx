@@ -33,7 +33,6 @@ import OrderHistory from './components/OrderHistory';
 import AdminPanel from './components/AdminPanel';
 import MerchantPanel from './components/MerchantPanel';
 import DriverPanel from './components/DriverPanel';
-import AndroidBuilder from './components/AndroidBuilder';
 import RegisterModal from './components/RegisterModal';
 import SupportModal from './components/SupportModal';
 
@@ -63,7 +62,6 @@ export default function App() {
 
   // Navigation & Filtering
   const [activeTab, setActiveTab] = useState<'explore' | 'cart' | 'history' | 'tracking' | 'account'>('explore');
-  const [isAndroidBuilderOpen, setIsAndroidBuilderOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   // Customer registration/account verification states
@@ -79,6 +77,9 @@ export default function App() {
     notes: string;
     appliedPromo?: PromoCode;
     discountAmount?: number;
+    isScheduled?: boolean;
+    scheduledDate?: string;
+    scheduledTime?: string;
   } | null>(null);
 
   // Live clock for Android status bar simulation
@@ -292,7 +293,10 @@ export default function App() {
           data.paymentMethod,
           data.notes,
           data.appliedPromo,
-          data.discountAmount
+          data.discountAmount,
+          data.isScheduled,
+          data.scheduledDate,
+          data.scheduledTime
         );
       }, 300);
     }
@@ -305,16 +309,39 @@ export default function App() {
     paymentMethod: string,
     notes: string,
     appliedPromo?: PromoCode,
-    discountAmount?: number
+    discountAmount?: number,
+    isScheduled?: boolean,
+    scheduledDate?: string,
+    scheduledTime?: string
   ) => {
     // Intercept checkout if not registered yet!
     if (!customerAccount) {
-      setPendingCheckoutData({ address, phone, paymentMethod, notes, appliedPromo, discountAmount });
+      setPendingCheckoutData({
+        address,
+        phone,
+        paymentMethod,
+        notes,
+        appliedPromo,
+        discountAmount,
+        isScheduled,
+        scheduledDate,
+        scheduledTime
+      });
       setIsRegisterModalOpen(true);
       return;
     }
 
-    executeOrderCheckout(address, phone, paymentMethod, notes, appliedPromo, discountAmount);
+    executeOrderCheckout(
+      address,
+      phone,
+      paymentMethod,
+      notes,
+      appliedPromo,
+      discountAmount,
+      isScheduled,
+      scheduledDate,
+      scheduledTime
+    );
   };
 
   // Core execution of Checkout
@@ -324,7 +351,10 @@ export default function App() {
     paymentMethod: string,
     notes: string,
     appliedPromo?: PromoCode,
-    discountAmount?: number
+    discountAmount?: number,
+    isScheduled?: boolean,
+    scheduledDate?: string,
+    scheduledTime?: string
   ) => {
     // We assume all items in the cart are from the same shop for delivery logic simplicity.
     // Let's grab the shop of the first item.
@@ -368,6 +398,9 @@ export default function App() {
       paymentMethod,
       notes: notes || undefined,
       trackingProgress: 5,
+      isScheduled,
+      scheduledDate,
+      scheduledTime,
     };
 
     const updatedOrders = [newOrder, ...orders];
@@ -375,7 +408,11 @@ export default function App() {
     setActiveOrderId(newOrder.id);
     setCart([]); // Clear Cart
     setActiveTab('tracking'); // Auto jump to live tracking!
-    showToast('تم تقديم طلبك بنجاح! جاري التوصيل 🛵', 'success');
+    if (isScheduled) {
+      showToast(`تمت جدولة طلبك بنجاح ليوم ${scheduledDate} الساعة ${scheduledTime}! 📅`, 'success');
+    } else {
+      showToast('تم تقديم طلبك بنجاح! جاري التوصيل 🛵', 'success');
+    }
   };
 
   // Track order state updates by ID
@@ -393,6 +430,23 @@ export default function App() {
   const handleUpdateOrderStatus = (status: OrderStatus, progress: number) => {
     if (!activeOrderId) return;
     handleUpdateOrderStatusById(activeOrderId, status, progress);
+  };
+
+  const handleUpdateOrderRatings = (
+    orderId: string,
+    restaurantRating: number,
+    restaurantReview: string,
+    driverRating: number,
+    driverReview: string
+  ) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((o) =>
+        o.id === orderId
+          ? { ...o, restaurantRating, restaurantReview, driverRating, driverReview }
+          : o
+      )
+    );
+    showToast('شكراً لتقييمك! تم حفظ آرائك لدعم كباتن التوصيل والمطاعم 🌟', 'success');
   };
 
   // Update a shop's details/status (such as open/close state)
@@ -501,14 +555,6 @@ export default function App() {
               </ol>
 
               <div className="pt-3 border-t border-slate-800/60 space-y-3">
-                <button
-                  onClick={() => setIsAndroidBuilderOpen(true)}
-                  className="w-full bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:brightness-110 text-white font-black text-xs py-4 px-4 rounded-2xl shadow-[0_4px_20px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2 transition-all cursor-pointer transform hover:scale-[1.01] active:scale-95"
-                >
-                  <Smartphone className="h-4.5 w-4.5 animate-bounce" />
-                  <span>مولّد حزم الـ APK والـ Expo المباشر 📱</span>
-                </button>
-
                 <div className="bg-slate-900/60 border border-white/5 p-4 rounded-2xl flex items-center justify-between text-[11px] font-bold text-slate-300">
                   <div className="space-y-0.5">
                     <span className="text-[10px] text-slate-400 font-extrabold block">الدعم الفني والشكاوى لـ طلبات فرشوط:</span>
@@ -578,20 +624,20 @@ export default function App() {
         {/* Scrollable Container inside Phone Mockup */}
         <div className="flex-grow overflow-y-auto flex flex-col relative bg-slate-50" style={{ height: 'calc(100% - 32px)' }}>
           
-          {isAndroidBuilderOpen ? (
-            <AndroidBuilder 
-              onClose={() => setIsAndroidBuilderOpen(false)}
-              appName="طلبات فرشوط"
-            />
-          ) : !isLoggedIn ? (
+          {!isLoggedIn ? (
             /* Unified Landing & Login Selector Gateway */
             <div className="flex-grow flex flex-col justify-between bg-slate-50 p-6 overflow-y-auto">
               <div className="space-y-6 pt-6">
                 
                 {/* Logo and Greeting */}
                 <div className="text-center space-y-3">
-                  <div className="mx-auto h-20 w-20 rounded-[28px] bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-xl shadow-red-500/20 animate-pulse">
-                    <span className="text-4xl">🛵</span>
+                  <div className="mx-auto h-20 w-20 rounded-[28px] bg-white border border-slate-100 shadow-xl overflow-hidden flex items-center justify-center animate-pulse">
+                    <img
+                      src={localStorage.getItem('android_app_icon') || '/pwa_icon.jpg'}
+                      alt="شعار طلبات فرشوط"
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
                   </div>
                   <div className="space-y-1">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">طلبات فرشوط</h2>
@@ -1024,6 +1070,7 @@ export default function App() {
               order={activeOrder}
               onClose={() => setActiveTab('history')}
               onUpdateStatus={handleUpdateOrderStatus}
+              onUpdateRatings={handleUpdateOrderRatings}
             />
           ) : (
             <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 shadow-sm max-w-md mx-auto">
@@ -1113,17 +1160,6 @@ export default function App() {
                 <h4 className="font-extrabold text-[10px] text-slate-400 pb-1">إعدادات التطبيق الإضافية</h4>
                 
                 <div className="space-y-1.5">
-                  <button 
-                    onClick={() => setIsAndroidBuilderOpen(true)}
-                    className="w-full text-right bg-gradient-to-r from-red-500/10 to-rose-500/10 hover:from-red-500/20 hover:to-rose-500/20 border border-red-100 px-3.5 py-3 rounded-2xl text-xs font-black text-red-600 flex items-center justify-between transition-all cursor-pointer shadow-sm mb-1.5"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm animate-bounce">🤖</span>
-                      <span>منشئ ومبرمج تطبيق أندرويد (APK)</span>
-                    </span>
-                    <span className="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded-full font-black animate-pulse">جديد 5G</span>
-                  </button>
-
                   <button className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors">
                     <span className="flex items-center gap-2">
                       <span className="text-sm">🎫</span>
