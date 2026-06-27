@@ -23,13 +23,14 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # حذف أي ملفات مؤقتة سابقة قد تكون فاسدة
-          ./gradlew clean
-          # بناء التطبيق مع عرض تفاصيل الخطأ كاملة
-          ./gradlew assembleRelease --info --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/*.apk
+          # إزالة أي ملفات gradle تالفة قد تعيق العملية
+          rm -rf gradle/wrapper/gradle-wrapper.jar
+          
+          # تثبيت نسخة Gradle نظيفة ومحددة لضمان التوافق
+          gradle wrapper --gradle-version 8.7
+          
+          # جعل ملف البناء الجديد قابلاً للتنفيذ
+          chmod +x gradlew
+          
+          # بناء التطبيق مع عرض تفاصيل الخطأ في حال حدوثه
+          ./gradlew assembleRelease --stacktrace
