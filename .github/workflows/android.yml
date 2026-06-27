@@ -28,14 +28,14 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # إزالة أي ملفات gradle wrapper تالفة
+          # إزالة ملفات Gradle التالفة لمنع خطأ Validation
           rm -rf gradle/wrapper/gradle-wrapper.jar
           
-          # فرض استخدام إصدار 8.5 المتوافق وتوليد wrapper جديد
+          # فرض استخدام إصدار Gradle 8.5 المستقر والمتوافق
           gradle wrapper --gradle-version 8.5
           
-          # منح صلاحية التنفيذ
+          # منح صلاحية التنفيذ لملف gradlew
           chmod +x gradlew
           
-          # البناء مع استخدام خيارات التوافق
+          # بناء التطبيق
           ./gradlew assembleRelease --stacktrace
