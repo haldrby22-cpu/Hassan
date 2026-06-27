@@ -22,14 +22,18 @@ jobs:
 
       - name: Build APK
         run: |
+          # 1. الانتقال لمجلد الأندرويد
           cd android
-          # حذف ملفات Gradle المحلية التالفة لمنع حدوث خطأ Validation
-          rm -rf gradle/wrapper/gradle-wrapper.jar
-          rm -rf gradle/wrapper/gradle-wrapper.properties
           
-          # استخدام gradle المثبت في النظام مباشرة لبناء المشروع
-          # سيقوم هذا تلقائياً بإنشاء wrapper نظيف وموافق للمعايير
-          gradle assembleRelease --stacktrace
+          # 2. حذف ملفات الـ wrapper الموجودة في المشروع لتجنب خطأ التحقق
+          rm -rf gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.properties
+          
+          # 3. إنشاء wrapper جديد ونظيف ومتوافق مع النظام الحالي
+          gradle wrapper --gradle-version 8.7
+          
+          # 4. منح صلاحيات التنفيذ وبناء التطبيق
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
