@@ -28,10 +28,10 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # إزالة ملفات Gradle التالفة لمنع خطأ Validation
+          # إزالة أي ملفات gradle wrapper تالفة لتجنب خطأ Validation
           rm -rf gradle/wrapper/gradle-wrapper.jar
           
-          # فرض استخدام إصدار Gradle 8.5 المستقر والمتوافق
+          # فرض استخدام إصدار Gradle 8.5 المتوافق
           gradle wrapper --gradle-version 8.5
           
           # منح صلاحية التنفيذ لملف gradlew
