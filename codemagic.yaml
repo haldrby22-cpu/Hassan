@@ -1,0 +1,23 @@
+workflows:
+  publish-to-store:
+    name: Publish to Google Play
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - google_play_credentials # يجب ربط حساب Google Play بـ Codemagic
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build Android App Bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal # أو 'production' إذا كان التحديث جاهزاً للجمهور
+        release_files:
+          - android/app/build/outputs/bundle/release/*.aab
