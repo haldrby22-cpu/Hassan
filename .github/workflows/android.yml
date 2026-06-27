@@ -99,7 +99,15 @@ jobs:
           if ! ./gradlew assembleRelease --stacktrace > release_build.log 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleRelease failed! ❌❌❌"
             echo "=================== COMPILATION ERRORS AND WARNINGS ==================="
-            grep -i -n -C 2 -E "error:|exception|failed" release_build.log | head -n 120 || true
+            grep -i -n -C 5 -E "error|exception|failed|aapt" release_build.log | head -n 150 || true
+            echo "=================== DETAILED MERGE RESOURCES ERRORS ==================="
+            merge_line=$(grep -n "mergeReleaseResources" release_build.log | cut -d: -f1 | head -n 1)
+            if [ ! -z "$merge_line" ]; then
+              echo "Printing 150 lines around 'mergeReleaseResources' starting at line $merge_line:"
+              start_line=$((merge_line > 20 ? merge_line - 20 : 1))
+              end_line=$((merge_line + 130))
+              sed -n "${start_line},${end_line}p" release_build.log
+            fi
             echo "=================== BUILD FAILED CONTEXT ==================="
             line_num=$(grep -n "BUILD FAILED" release_build.log | cut -d: -f1 | head -n 1)
             if [ ! -z "$line_num" ]; then
