@@ -18,22 +18,17 @@ android {
     }
     signingConfigs {
         release {
-            def keystoreFile = file("release.keystore")
-            if (keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword System.getenv("RELEASE_STORE_PASSWORD") ?: "talabat123"
-                keyAlias System.getenv("RELEASE_KEY_ALIAS") ?: "talabat"
-                keyPassword System.getenv("RELEASE_KEY_PASSWORD") ?: "talabat123"
-            }
+            storeFile file("release.keystore")
+            storePassword "talabat123"
+            keyAlias "talabat"
+            keyPassword "talabat123"
         }
     }
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (file("release.keystore").exists()) {
-                signingConfig signingConfigs.release
-            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
