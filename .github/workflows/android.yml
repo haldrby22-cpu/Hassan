@@ -1,4 +1,4 @@
-name: Build Android APK
+         name: Build Android APK
 
 on:
   push:
@@ -23,15 +23,17 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # 1. إزالة أي ملفات Gradle محلية قد تكون تالفة
+          # 1. إزالة ملفات Gradle المحلية (التي تسبب خطأ التلف والتحقق الأمني)
           rm -rf gradle/wrapper/gradle-wrapper.jar
           rm -rf gradle/wrapper/gradle-wrapper.properties
+          rm -rf gradlew
           
-          # 2. إنشاء نسخة Gradle 8.5 نظيفة ومتوافقة
+          # 2. إنشاء نسخة Gradle نظيفة ومحددة (8.5) مباشرة من خوادم Gradle الرسمية
           gradle wrapper --gradle-version 8.5
           
-          # 3. إعطاء صلاحيات تنفيذ لـ gradlew الجديد
+          # 3. منح صلاحيات التنفيذ للملف الجديد
           chmod +x gradlew
           
-          # 4. البناء مع تخطي التحقق الأمني للـ wrapper (لأننا قمنا بإنشائه للتو)
-          ./gradlew assembleRelease --stacktrace -Dorg.gradle.wrapper.validation.mode=all
+          # 4. بناء التطبيق
+          ./gradlew assembleRelease --stacktrace
+ ./gradlew assembleRelease --stacktrace -Dorg.gradle.wrapper.validation.mode=all
