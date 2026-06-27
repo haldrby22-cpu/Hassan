@@ -137,6 +137,22 @@ export default function App() {
 
       const savedActiveOrderId = localStorage.getItem('talabat_active_order_id');
       if (savedActiveOrderId) setActiveOrderId(savedActiveOrderId);
+
+      // Apply dynamic app launcher icon if set
+      const savedIcon = localStorage.getItem('android_app_icon');
+      if (savedIcon) {
+        const iconLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+        if (iconLink) iconLink.href = savedIcon;
+        const iconFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement;
+        if (iconFavicon) {
+          iconFavicon.href = savedIcon;
+        } else {
+          const newFav = document.createElement('link');
+          newFav.rel = 'icon';
+          newFav.href = savedIcon;
+          document.head.appendChild(newFav);
+        }
+      }
     } catch (e) {
       console.error('Failed to load local storage state', e);
     }

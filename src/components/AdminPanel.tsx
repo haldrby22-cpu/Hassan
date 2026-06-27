@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Shop, MenuItem, CategoryType } from '../types';
-import { Plus, Trash2, Store, Utensils, Coffee, ShieldCheck, Image, FileText, DollarSign, Clock, MapPin, Tag, Lock, User, Eye, EyeOff, AlertCircle, LogOut } from 'lucide-react';
+import { Plus, Trash2, Store, Utensils, Coffee, ShieldCheck, Image, FileText, DollarSign, Clock, MapPin, Tag, Lock, User, Eye, EyeOff, AlertCircle, LogOut, Mail, Key, X, Download } from 'lucide-react';
 
 interface AdminPanelProps {
   shops: Shop[];
@@ -31,6 +31,10 @@ export default function AdminPanel({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  // Password Recovery States
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
+  const [recoverySuccess, setRecoverySuccess] = useState(false);
 
   // Admin Credentials (stored in localStorage)
   const [adminUsername, setAdminUsername] = useState(() => {
@@ -243,6 +247,19 @@ export default function AdminPanel({
             </div>
           )}
 
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRecoveryOpen(true);
+                setRecoverySuccess(false);
+              }}
+              className="text-[10px] font-black text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0"
+            >
+              <span>🔑 هل نسيت كلمة المرور؟ استرجعها الآن</span>
+            </button>
+          </div>
+
           <button
             type="submit"
             className="w-full bg-slate-900 text-white rounded-xl py-3 text-sm font-bold shadow-md hover:bg-slate-800 transition-colors cursor-pointer"
@@ -260,6 +277,91 @@ export default function AdminPanel({
             <span>⬅️</span>
             <span>الرجوع لشاشة اختيار البوابة الرئيسية</span>
           </button>
+        )}
+
+        {/* Password Recovery Modal */}
+        {isRecoveryOpen && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-[28px] p-6 shadow-2xl relative space-y-4 text-right animate-slide-up" dir="rtl">
+              <button
+                onClick={() => setIsRecoveryOpen(false)}
+                className="absolute top-4 left-4 h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="space-y-2 pb-2 border-b border-slate-100">
+                <div className="h-11 w-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl">
+                  🔑
+                </div>
+                <h3 className="text-sm font-black text-slate-800">استرجاع كلمات المرور وبيانات الدخول</h3>
+                <p className="text-[10px] text-slate-400 font-bold">بناءً على طلبك، سيتم تصدير كلمات المرور الحالية للنظام مباشرةً إلى بريدك الإلكتروني.</p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                  <span>البريد الإلكتروني المستلم المعتمد:</span>
+                </div>
+                <div className="bg-slate-900 text-slate-100 font-mono text-center text-xs py-2 px-3 rounded-xl font-bold tracking-wider select-all">
+                  haldrby22@gmail.com
+                </div>
+                <p className="text-[9px] text-slate-400 font-semibold leading-normal">
+                  * هذا النظام مصمم للاسترداد التلقائي الآمن والمباشر. سيتم تعبئة تفاصيل المدير العام وجميع الفروع النشطة بالرسالة.
+                </p>
+              </div>
+
+              {recoverySuccess && (
+                <div className="bg-emerald-50 border border-emerald-100 p-3.5 rounded-2xl text-[10.5px] font-black text-emerald-800 leading-relaxed">
+                  🟢 تم بنجاح تجهيز وفتح عميل البريد الإلكتروني! يرجى إرسال الرسالة من تطبيق البريد الخاص بك لتصل فوراً إلى <span className="underline">haldrby22@gmail.com</span>.
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    const subject = encodeURIComponent('🔑 استرجاع كلمات مرور تطبيق طلبات فرشوط');
+                    const emailBody = `طلبات استرجاع كلمات المرور وإعدادات تطبيق طلبات فرشوط 🔑
+
+أهلاً بك يا أستاذ حسن،
+بناءً على طلبك، إليك تفاصيل كلمات المرور الحالية للوحة التحكم والمطاعم المسجلة في جهازك:
+
+--------------------------------------------------
+1. لوحة التحكم الإدارية (Admin Panel):
+- رابط لوحة التحكم: ${window.location.origin}
+- اسم المستخدم: ${adminUsername}
+- كلمة المرور: ${adminPassword}
+
+--------------------------------------------------
+2. لوحة تحكم المطاعم والشركاء (Merchant Panel):
+- اسم المستخدم الافتراضي للمشرف العام: merchant
+- كلمة المرور الافتراضية للمشرف العام: merchant
+
+المطاعم النشطة حالياً في النظام وكلمات مرورها:
+${shops.map(shop => `- مطعم: ${shop.name} | كلمة المرور: ${shop.password || '123456'}`).join('\n')}
+
+--------------------------------------------------
+تاريخ الطلب: ${new Date().toLocaleString('ar-EG')}
+تطبيق طلبات فرشوط 🛵❤️`;
+                    
+                    window.location.href = `mailto:haldrby22@gmail.com?subject=${subject}&body=${encodeURIComponent(emailBody)}`;
+                    setRecoverySuccess(true);
+                  }}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3 text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <Mail className="h-4 w-4" />
+                  <span>أرسل كلمات المرور إلى البريد المعتمد ✉️</span>
+                </button>
+                
+                <button
+                  onClick={() => setIsRecoveryOpen(false)}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl py-2.5 text-[10px] font-black transition-colors cursor-pointer"
+                >
+                  إغلاق النافذة
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );

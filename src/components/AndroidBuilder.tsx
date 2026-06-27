@@ -15,7 +15,8 @@ import {
   Sparkles,
   Layers,
   Copy,
-  Check
+  Check,
+  Image
 } from 'lucide-react';
 
 interface AndroidBuilderProps {
@@ -29,12 +30,33 @@ export default function AndroidBuilder({ onClose, appName }: AndroidBuilderProps
   const [displayName, setDisplayName] = useState(appName || 'طلبات فرشوط');
   const [appVersion, setAppVersion] = useState('1.0.0');
   const [buildType, setBuildType] = useState<'debug' | 'release'>('debug');
+  const [appIcon, setAppIcon] = useState(() => {
+    return localStorage.getItem('android_app_icon') || 'https://images.unsplash.com/photo-1513001900722-370f803f498d?w=200&auto=format&fit=crop&q=80';
+  });
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
     'INTERNET',
     'ACCESS_FINE_LOCATION',
     'CALL_PHONE',
     'POST_NOTIFICATIONS'
   ]);
+
+  const handleSaveIcon = (newIcon: string) => {
+    setAppIcon(newIcon);
+    localStorage.setItem('android_app_icon', newIcon);
+    
+    // Update live DOM headers
+    const iconLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+    if (iconLink) iconLink.href = newIcon;
+    const iconFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement;
+    if (iconFavicon) {
+      iconFavicon.href = newIcon;
+    } else {
+      const newFav = document.createElement('link');
+      newFav.rel = 'icon';
+      newFav.href = newIcon;
+      document.head.appendChild(newFav);
+    }
+  };
 
   // Build simulation state
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'failed'>('idle');
@@ -504,6 +526,90 @@ const styles = StyleSheet.create({
                       <option value="release">Release (للمتجر والإنتاج)</option>
                     </select>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* App Launcher Icon Configuration */}
+            <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+              <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5 border-b border-slate-50 pb-2">
+                <Image className="h-4 w-4 text-red-500" />
+                <span>أيقونة وشعار التطبيق المثبت على الهاتف 📱</span>
+              </h5>
+              
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                {/* Live Preview Circle */}
+                <div className="relative group shrink-0">
+                  <div className="h-16 w-16 rounded-[22px] bg-white border border-slate-100 shadow-md flex items-center justify-center overflow-hidden">
+                    <img src={appIcon} alt="أيقونة التطبيق" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-emerald-500 rounded-full border border-white flex items-center justify-center text-[10px] text-white">
+                    ✓
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-2 w-full">
+                  <label className="text-[10px] font-bold text-slate-400">رابط صورة الأيقونة أو الشعار (URL)</label>
+                  <input
+                    type="text"
+                    value={appIcon}
+                    onChange={(e) => handleSaveIcon(e.target.value)}
+                    placeholder="ضع رابط الصورة هنا"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-[11px] font-bold text-slate-600 outline-none focus:border-red-500 text-left"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              {/* Upload image as base64 */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400">تحميل صورة مخصصة من هاتفك أو جهازك:</span>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[10.5px] font-bold py-2.5 px-4 rounded-xl border border-dashed border-slate-200 text-center cursor-pointer transition-colors">
+                    <span>📁 اختر ملف صورة مخصص</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              handleSaveIcon(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Presets Grid */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400">شعارات جاهزة مقترحة لتطبيق فرشوط:</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { name: 'حقيبة حمراء', url: 'https://images.unsplash.com/photo-1526367790999-0150786486a9?w=150&auto=format&fit=crop&q=80' },
+                    { name: 'بيتزا إيطالية', url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=150&auto=format&fit=crop&q=80' },
+                    { name: 'كابتن التوصيل', url: 'https://images.unsplash.com/photo-1513001900722-370f803f498d?w=150&auto=format&fit=crop&q=80' },
+                    { name: 'وجبة برجر فاخرة', url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150&auto=format&fit=crop&q=80' }
+                  ].map((preset) => (
+                    <button
+                      key={preset.url}
+                      onClick={() => handleSaveIcon(preset.url)}
+                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all cursor-pointer ${appIcon === preset.url ? 'border-red-500 scale-95 shadow-sm' : 'border-transparent hover:border-slate-200'}`}
+                      title={preset.name}
+                    >
+                      <img src={preset.url} alt={preset.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="absolute inset-x-0 bottom-0 bg-slate-950/60 text-white text-[8px] py-0.5 text-center font-bold">
+                        {preset.name}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
