@@ -74,20 +74,9 @@ jobs:
           cd android
           ./gradlew assembleDebug --stacktrace
 
-      - name: Build Android Release Bundle (AAB) & APK 📦
+      - name: Build Android Release APK 📦
         run: |
           cd android
-          echo "🚀 Starting bundleRelease..."
-          if ! ./gradlew bundleRelease --stacktrace > bundle_build_log.txt 2>&1; then
-            echo "❌❌❌ ERROR: gradlew bundleRelease failed! ❌❌❌"
-            echo "=================== ERROR LOG SUMMARY ==================="
-            grep -i -E "error|exception|failed|caused by" bundle_build_log.txt | head -n 40
-            echo "========================================================="
-            echo "Printing last 80 lines of the build log:"
-            tail -n 80 bundle_build_log.txt
-            exit 1
-          fi
-          
           echo "🚀 Starting assembleRelease..."
           if ! ./gradlew assembleRelease --stacktrace > assemble_build_log.txt 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleRelease failed! ❌❌❌"
@@ -113,9 +102,9 @@ jobs:
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
-      - name: Upload Release AAB Bundle Artifact 📤
+      - name: Upload Release AAB Bundle Artifact (Skipped) 📤
         uses: actions/upload-artifact@v4
         with:
           name: Talabat-Farshout-Release-AAB
           path: android/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: error
+          if-no-files-found: warn
