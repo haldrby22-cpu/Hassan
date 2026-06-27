@@ -73,13 +73,12 @@ jobs:
         run: |
           cd android
           echo "🚀 Starting assembleDebug..."
-          if ! ./gradlew assembleDebug --stacktrace > debug_build_log.txt 2>&1; then
+          if ! ./gradlew assembleDebug --stacktrace > debug_build.log 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleDebug failed! ❌❌❌"
-            echo "=================== ERROR LOG SUMMARY ==================="
-            grep -i -E "error|exception|failed|caused by" debug_build_log.txt | head -n 40 || true
-            echo "========================================================="
-            echo "Printing last 80 lines of the build log:"
-            tail -n 80 debug_build_log.txt
+            echo "=================== LAST 150 LINES OF LOG ==================="
+            tail -n 150 debug_build.log
+            echo "=================== COMPILATION ERRORS ==================="
+            grep -i -E "error|exception|failed|caused by" debug_build.log | head -n 40 || true
             exit 1
           fi
           echo "✅ assembleDebug completed successfully!"
@@ -88,13 +87,12 @@ jobs:
         run: |
           cd android
           echo "🚀 Starting assembleRelease..."
-          if ! ./gradlew assembleRelease --stacktrace > assemble_build_log.txt 2>&1; then
+          if ! ./gradlew assembleRelease --stacktrace > release_build.log 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleRelease failed! ❌❌❌"
-            echo "=================== ERROR LOG SUMMARY ==================="
-            grep -i -E "error|exception|failed|caused by" assemble_build_log.txt | head -n 40 || true
-            echo "========================================================="
-            echo "Printing last 80 lines of the build log:"
-            tail -n 80 assemble_build_log.txt
+            echo "=================== LAST 150 LINES OF LOG ==================="
+            tail -n 150 release_build.log
+            echo "=================== COMPILATION ERRORS ==================="
+            grep -i -E "error|exception|failed|caused by" release_build.log | head -n 40 || true
             exit 1
           fi
           echo "✅ assembleRelease completed successfully!"
