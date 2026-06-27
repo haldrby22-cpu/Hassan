@@ -1,10 +1,7 @@
 workflows:
-  build-android:
-    name: Build Android APK and AAB
+  my-build-workflow:
+    name: Build APK and AAB
     instance_type: linux
-    environment:
-      vars:
-        CM_INSTANCE_TYPE: linux
     scripts:
       - name: Install dependencies
         script: npm install
