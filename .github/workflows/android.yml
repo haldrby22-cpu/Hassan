@@ -77,16 +77,7 @@ jobs:
       - name: Build Android Release APK 📦
         run: |
           cd android
-          echo "🚀 Starting assembleRelease..."
-          if ! ./gradlew assembleRelease --stacktrace > assemble_build_log.txt 2>&1; then
-            echo "❌❌❌ ERROR: gradlew assembleRelease failed! ❌❌❌"
-            echo "=================== ERROR LOG SUMMARY ==================="
-            grep -i -E "error|exception|failed|caused by" assemble_build_log.txt | head -n 40
-            echo "========================================================="
-            echo "Printing last 80 lines of the build log:"
-            tail -n 80 assemble_build_log.txt
-            exit 1
-          fi
+          ./gradlew assembleRelease --stacktrace
 
       - name: Upload Debug APK Artifact 📤
         uses: actions/upload-artifact@v4
