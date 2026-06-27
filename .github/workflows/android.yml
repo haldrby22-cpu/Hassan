@@ -22,15 +22,11 @@ jobs:
 
       - name: Build APK
         run: |
-          # حذف أي ملفات gradle قديمة أو تالفة قد تسبب تعارضاً
-          rm -rf android/.gradle
-          rm -rf android/gradlew
-          
-          # الانتقال لمجلد الأندرويد واستخدام gradle النظام مباشرة
           cd android
-          gradle wrapper
-          chmod +x gradlew
-          ./gradlew assembleRelease
+          # تنظيف أي بقايا بناء قديمة
+          ./gradlew clean
+          # بناء التطبيق مع تحديد مستوى التوافق
+          ./gradlew assembleRelease --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
