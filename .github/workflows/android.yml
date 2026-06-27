@@ -41,6 +41,11 @@ jobs:
       - name: Setup Gradle Cache 🛠️
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Repair/Download Pristine Gradle Wrapper JAR 🛠️
+        run: |
+          mkdir -p android/gradle/wrapper
+          curl -Lo android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.14.3/gradle/wrapper/gradle-wrapper.jar
+
       - name: Synchronize Web Assets with Capacitor 🔄
         run: npx cap sync android
 
