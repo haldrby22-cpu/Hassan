@@ -76,7 +76,7 @@ jobs:
           if ! ./gradlew assembleDebug --stacktrace > debug_build.log 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleDebug failed! ❌❌❌"
             echo "=================== COMPILATION ERRORS AND WARNINGS ==================="
-            grep -i -n -C 2 -E "error:|exception|compile|failed" debug_build.log | head -n 80 || true
+            grep -i -n -C 2 -E "error:|exception|failed" debug_build.log | head -n 120 || true
             echo "=================== BUILD FAILED CONTEXT ==================="
             line_num=$(grep -n "BUILD FAILED" debug_build.log | cut -d: -f1 | head -n 1)
             if [ ! -z "$line_num" ]; then
@@ -99,7 +99,7 @@ jobs:
           if ! ./gradlew assembleRelease --stacktrace > release_build.log 2>&1; then
             echo "❌❌❌ ERROR: gradlew assembleRelease failed! ❌❌❌"
             echo "=================== COMPILATION ERRORS AND WARNINGS ==================="
-            grep -i -n -C 2 -E "error:|exception|compile|failed" release_build.log | head -n 80 || true
+            grep -i -n -C 2 -E "error:|exception|failed" release_build.log | head -n 120 || true
             echo "=================== BUILD FAILED CONTEXT ==================="
             line_num=$(grep -n "BUILD FAILED" release_build.log | cut -d: -f1 | head -n 1)
             if [ ! -z "$line_num" ]; then
