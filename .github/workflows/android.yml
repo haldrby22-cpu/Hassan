@@ -22,11 +22,10 @@ jobs:
 
       - name: Build APK
         run: |
+          # الانتقال لمجلد الأندرويد
           cd android
-          # تنظيف أي بقايا بناء قديمة
-          ./gradlew clean
-          # بناء التطبيق مع تحديد مستوى التوافق
-          ./gradlew assembleRelease --stacktrace
+          # استخدام إصدار Gradle الرسمي مباشرة عبر النظام بدلاً من gradlew الخاص بالمشروع
+          gradle assembleRelease --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
