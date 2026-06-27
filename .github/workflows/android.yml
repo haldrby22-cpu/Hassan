@@ -64,6 +64,11 @@ jobs:
             -keypass talabat123 \
             -dname "CN=Talabat, OU=App, O=TalabatFarshout, L=Farshout, S=Qena, C=EG"
 
+      - name: Verify Keystore Location 🔍
+        run: |
+          echo "Checking if keystore exists..."
+          ls -la android/app/
+
       - name: Build Android Debug APK 📱
         run: |
           cd android
@@ -72,7 +77,8 @@ jobs:
       - name: Build Android Release Bundle (AAB) & APK 📦
         run: |
           cd android
-          ./gradlew bundleRelease assembleRelease
+          ./gradlew bundleRelease
+          ./gradlew assembleRelease
 
       - name: Upload Debug APK Artifact 📤
         uses: actions/upload-artifact@v4
