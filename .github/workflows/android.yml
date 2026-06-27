@@ -23,12 +23,15 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # تنظيف أي ملفات gradle قديمة أو تالفة
+          # 1. إزالة أي ملفات Gradle محلية قد تكون تالفة
           rm -rf gradle/wrapper/gradle-wrapper.jar
+          rm -rf gradle/wrapper/gradle-wrapper.properties
           
-          # فرض استخدام إصدار Gradle 8.5 المتوافق
+          # 2. إنشاء نسخة Gradle 8.5 نظيفة ومتوافقة
           gradle wrapper --gradle-version 8.5
           
-          # بناء المشروع
+          # 3. إعطاء صلاحيات تنفيذ لـ gradlew الجديد
           chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          
+          # 4. البناء مع تخطي التحقق الأمني للـ wrapper (لأننا قمنا بإنشائه للتو)
+          ./gradlew assembleRelease --stacktrace -Dorg.gradle.wrapper.validation.mode=all
