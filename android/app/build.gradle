@@ -18,7 +18,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("release.keystore")
+            def keystoreFile = file("release.keystore")
+            println "👉 [GRADLE BUILD] Keystore absolute path: ${keystoreFile.absolutePath}"
+            println "👉 [GRADLE BUILD] Keystore exists: ${keystoreFile.exists()}"
+            storeFile keystoreFile
             storePassword "talabat123"
             keyAlias "talabat"
             keyPassword "talabat123"
