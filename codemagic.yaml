@@ -2,7 +2,7 @@ workflows:
   publish-to-store:
     name: Publish to Google Play
     max_build_duration: 60
-    instance_type: linux # قمنا بتغييرها من linux_x2 إلى linux
+    instance_type: linux
     environment:
       groups:
         - google_play_credentials
