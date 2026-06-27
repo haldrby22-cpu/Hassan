@@ -5,7 +5,7 @@ workflows:
     instance_type: linux_x2
     environment:
       groups:
-        - google_play_credentials # يجب ربط حساب Google Play بـ Codemagic
+        - google_play_credentials # تأكد من تعريف هذه المجموعة في إعدادات Codemagic
     scripts:
       - name: Install dependencies
         script: npm install
@@ -18,6 +18,4 @@ workflows:
     publishing:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal # أو 'production' إذا كان التحديث جاهزاً للجمهور
-        release_files:
-          - android/app/build/outputs/bundle/release/*.aab
+        track: internal # يمكنك تغييرها إلى 'production' للنشر للعامة
