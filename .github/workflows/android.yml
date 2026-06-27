@@ -23,12 +23,20 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # إزالة أي ملفات gradle قديمة أو تالفة قد تسبب تعارض
+          # إزالة أي ملفات gradle قديمة أو تالفة
           rm -rf gradle/wrapper/gradle-wrapper.jar
           
-          # فرض استخدام Gradle إصدار 8.5 المتوافق
-          gradle wrapper --gradle-version 8.5
+          # إنشاء wrapper جديد وسليم
+          gradle wrapper --gradle-version 8.7
+          
+          # منح صلاحية التنفيذ للملف
+          chmod +x gradlew
           
           # بناء التطبيق
-          chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: android/app/build/outputs/apk/release/*.apk
