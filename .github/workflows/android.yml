@@ -23,20 +23,12 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # حذف ملفات Gradle المحلية التالفة لمنع خطأ Validation
+          # إزالة أي ملفات gradle قديمة أو تالفة قد تسبب تعارض
           rm -rf gradle/wrapper/gradle-wrapper.jar
           
-          # إنشاء نسخة نظيفة من Gradle Wrapper (مثلاً إصدار 8.7 المتوافق)
-          gradle wrapper --gradle-version 8.7
-          
-          # إعطاء صلاحيات التنفيذ للملف
-          chmod +x gradlew
+          # فرض استخدام Gradle إصدار 8.5 المتوافق
+          gradle wrapper --gradle-version 8.5
           
           # بناء التطبيق
+          chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/*.apk
