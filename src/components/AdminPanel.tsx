@@ -206,7 +206,7 @@ export default function AdminPanel({
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="مثال: admin"
+              placeholder="أدخل اسم المستخدم"
               className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 bg-slate-50/50"
               required
             />
@@ -222,7 +222,7 @@ export default function AdminPanel({
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="مثال: admin"
+                placeholder="أدخل كلمة المرور"
                 className="w-full rounded-xl border border-slate-200 pl-11 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 bg-slate-50/50"
                 required
               />
@@ -261,18 +261,6 @@ export default function AdminPanel({
             <span>الرجوع لشاشة اختيار البوابة الرئيسية</span>
           </button>
         )}
-
-        <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 text-xs text-amber-800 space-y-1">
-          <p className="font-bold flex items-center gap-1.5">
-            <span>💡</span>
-            <span>بيانات الدخول الحالية للوحة الإدارة:</span>
-          </p>
-          <div className="font-mono text-[11px] text-amber-700/90 flex flex-col gap-0.5 mt-1.5 bg-white/50 p-2 rounded-lg border border-amber-50">
-            <div>اسم المستخدم: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">{adminUsername}</span></div>
-            <div>كلمة المرور: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">{adminPassword}</span></div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-1">يمكنك تغيير هذه البيانات في أي وقت من داخل لوحة التحكم بعد تسجيل الدخول.</p>
-        </div>
       </div>
     );
   }

@@ -130,8 +130,7 @@ export default function MerchantPanel({
         localStorage.setItem('merchant_selected_shop_id', loginShopId);
         setLoginError('');
       } else {
-        const expectedPwd = matchedShop.password ? `كلمة المرور المحددة للمطعم أو الافتراضية (123456)` : `كلمة المرور الافتراضية للمطعم: 123456`;
-        setLoginError(`كلمة المرور غير صحيحة! يرجى إدخال ${expectedPwd}`);
+        setLoginError('كلمة المرور غير صحيحة! يرجى التأكد من البيانات المدخلة.');
       }
     }
   };
@@ -304,7 +303,7 @@ export default function MerchantPanel({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="مثال: merchant"
+                  placeholder="أدخل اسم المستخدم للمشرف"
                   className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 bg-slate-50/50"
                   required
                 />
@@ -385,26 +384,6 @@ export default function MerchantPanel({
             <span>الرجوع لشاشة اختيار البوابة الرئيسية</span>
           </button>
         )}
-
-        <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 text-xs text-amber-800 space-y-1">
-          <p className="font-bold flex items-center gap-1.5">
-            <span>💡</span>
-            <span>بيانات الدخول السريع للتجربة:</span>
-          </p>
-          <div className="font-mono text-[11px] text-amber-700/90 flex flex-col gap-1 mt-1.5 bg-white/50 p-2 rounded-lg border border-amber-50">
-            {loginTab === 'general' ? (
-              <>
-                <div>المشرف العام: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">merchant</span></div>
-                <div>كلمة المرور: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">merchant</span></div>
-              </>
-            ) : (
-              <>
-                <div>الفرع المنفصل: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">اختر من القائمة</span></div>
-                <div>كلمة المرور الافتراضية للفروع: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">123456</span></div>
-              </>
-            )}
-          </div>
-        </div>
       </div>
     );
   }

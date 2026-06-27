@@ -84,7 +84,7 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
       localStorage.setItem('driver_authenticated', 'true');
       setLoginError('');
     } else {
-      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة! يرجى إدخال البيانات الافتراضية.');
+      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة! يرجى التأكد من البيانات المدخلة.');
     }
   };
 
@@ -154,7 +154,7 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="مثال: driver"
+              placeholder="أدخل اسم المستخدم للطيار"
               className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 bg-slate-50/50"
               required
             />
@@ -170,7 +170,7 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="مثال: driver"
+                placeholder="أدخل كلمة المرور"
                 className="w-full rounded-xl border border-slate-200 pl-11 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-red-400 bg-slate-50/50"
                 required
               />
@@ -209,17 +209,6 @@ export default function DriverPanel({ orders, onUpdateOrderStatus, onExitPortal 
             <span>الرجوع لشاشة اختيار البوابة الرئيسية</span>
           </button>
         )}
-
-        <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 text-xs text-amber-800 space-y-1">
-          <p className="font-bold flex items-center gap-1.5">
-            <span>💡</span>
-            <span>بيانات تجربة حساب الطيار / الكابتن:</span>
-          </p>
-          <div className="font-mono text-[11px] text-amber-700/90 flex flex-col gap-0.5 mt-1.5 bg-white/50 p-2 rounded-lg border border-amber-50">
-            <div>اسم المستخدم: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">driver</span></div>
-            <div>كلمة المرور: <span className="font-bold select-all bg-amber-100/50 px-1 rounded">driver</span></div>
-          </div>
-        </div>
       </div>
     );
   }
