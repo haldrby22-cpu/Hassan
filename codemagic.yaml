@@ -2,10 +2,10 @@ workflows:
   publish-to-store:
     name: Publish to Google Play
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: linux # قمنا بتغييرها من linux_x2 إلى linux
     environment:
       groups:
-        - google_play_credentials # تأكد من تعريف هذه المجموعة في إعدادات Codemagic
+        - google_play_credentials
     scripts:
       - name: Install dependencies
         script: npm install
@@ -18,4 +18,4 @@ workflows:
     publishing:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal # يمكنك تغييرها إلى 'production' للنشر للعامة
+        track: internal
