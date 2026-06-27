@@ -23,22 +23,12 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          
-          # 1. حذف الملفات التالفة التي تسبب خطأ Validation
+          # تنظيف أي ملفات gradle قديمة أو تالفة
           rm -rf gradle/wrapper/gradle-wrapper.jar
-          rm -rf gradle/wrapper/gradle-wrapper.properties
           
-          # 2. إنشاء Wrapper جديد وسليم من خوادم Gradle مباشرة
-          gradle wrapper --gradle-version 8.7
+          # فرض استخدام إصدار Gradle 8.5 المتوافق
+          gradle wrapper --gradle-version 8.5
           
-          # 3. منح صلاحيات التنفيذ للملف الجديد
+          # بناء المشروع
           chmod +x gradlew
-          
-          # 4. بناء التطبيق
           ./gradlew assembleRelease --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/*.apk
