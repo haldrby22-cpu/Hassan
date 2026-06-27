@@ -1,4 +1,4 @@
-         name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -23,17 +23,18 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # 1. إزالة ملفات Gradle المحلية (التي تسبب خطأ التلف والتحقق الأمني)
+          # إزالة ملفات Gradle التي تسبب خطأ Validation
           rm -rf gradle/wrapper/gradle-wrapper.jar
-          rm -rf gradle/wrapper/gradle-wrapper.properties
-          rm -rf gradlew
           
-          # 2. إنشاء نسخة Gradle نظيفة ومحددة (8.5) مباشرة من خوادم Gradle الرسمية
-          gradle wrapper --gradle-version 8.5
+          # إنشاء wrapper جديد وسليم
+          gradle wrapper --gradle-version 8.7
           
-          # 3. منح صلاحيات التنفيذ للملف الجديد
+          # بناء التطبيق
           chmod +x gradlew
-          
-          # 4. بناء التطبيق
-          ./gradlew assembleRelease --stacktrace
- ./gradlew assembleRelease --stacktrace -Dorg.gradle.wrapper.validation.mode=all
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: android/app/build/outputs/apk/release/*.apk
