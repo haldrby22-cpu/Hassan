@@ -20,11 +20,23 @@ import {
   Smartphone,
   Download,
   Share2,
-  LogOut
+  LogOut,
+  Wallet,
+  Plus,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Lock,
+  ShieldCheck,
+  CreditCard,
+  Bell,
+  BellRing,
+  Trash2,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 import { SHOPS, MENU_ITEMS } from './data';
-import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode } from './types';
+import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode, InAppNotification } from './types';
 import ShopCard from './components/ShopCard';
 import ItemCard from './components/ItemCard';
 import Cart from './components/Cart';
@@ -65,7 +77,7 @@ export default function App() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   // Customer registration/account verification states
-  const [customerAccount, setCustomerAccount] = useState<{ name: string; phone: string; address: string; password?: string } | null>(() => {
+  const [customerAccount, setCustomerAccount] = useState<{ name: string; phone: string; address: string; password?: string; mobileWalletNumber?: string; mobileWalletProvider?: string } | null>(() => {
     const saved = localStorage.getItem('customer_account_data');
     return saved ? JSON.parse(saved) : null;
   });
@@ -110,12 +122,260 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
+  // Premium Flexible UI Modes & States
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(() => localStorage.getItem('is_full_screen') === 'true');
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('talabat_favorites') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [shopFilter, setShopFilter] = useState<'all' | 'featured' | 'rating' | 'fastest' | 'favorites'>('all');
+
+  // Wallet States & Types
+  interface WalletTransaction {
+    id: string;
+    type: 'deposit' | 'withdrawal';
+    amount: number;
+    description: string;
+    date: string;
+  }
+
+  const [walletBalance, setWalletBalance] = useState<number>(() => {
+    const saved = localStorage.getItem('talabat_wallet_balance');
+    return saved !== null ? Number(saved) : 150; // default 150 EGP gift
+  });
+
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(() => {
+    const saved = localStorage.getItem('talabat_wallet_transactions');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    return [
+      {
+        id: 't-init',
+        type: 'deposit',
+        amount: 150,
+        description: 'هدية ترحيبية مجانية بمناسبة تفعيل المحفظة 🎉🎁',
+        date: new Date().toLocaleDateString('ar-EG', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
+
+  // Wallet Recharge interactive simulator states
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState('100');
+  const [rechargeMethod, setRechargeMethod] = useState<'vodafone' | 'card' | 'fawry'>('vodafone');
+  const [rechargePhone, setRechargePhone] = useState('');
+  const [rechargeStep, setRechargeStep] = useState<'input' | 'otp' | 'success'>('input');
+  const [rechargeOtp, setRechargeOtp] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+
   // Update Notification States
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isSimulatedUpdate, setIsSimulatedUpdate] = useState(false);
   const [showAppInstalledModal, setShowAppInstalledModal] = useState(false);
+  const [showPCInstallModal, setShowPCInstallModal] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
+    return 'Notification' in window ? Notification.permission : 'default';
+  });
+
+  const sendSystemNotification = (title: string, body: string, iconUrl?: string) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
+
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body,
+            icon: iconUrl || '/pwa_icon.jpg',
+            badge: '/pwa_icon.jpg',
+            vibrate: [200, 100, 200],
+            dir: 'rtl',
+            tag: 'order-status',
+            renotify: true,
+          } as any);
+        }).catch(() => {
+          new Notification(title, {
+            body,
+            icon: iconUrl || '/pwa_icon.jpg',
+            dir: 'rtl'
+          });
+        });
+      } else {
+        new Notification(title, {
+          body,
+          icon: iconUrl || '/pwa_icon.jpg',
+          dir: 'rtl'
+        });
+      }
+    } catch (e) {
+      console.error('Failed to show notification:', e);
+    }
+  };
+
+  const handleRequestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showToast('⚠️ متصفحك أو هاتفك لا يدعم نظام الإشعارات المباشرة.', 'info');
+      return;
+    }
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
+        showToast('🔔 ممتاز! تم تفعيل إشعارات الهاتف بنجاح. ستتلقى تحديثات مباشرة بحالة طلبك حتى لو كان التطبيق مغلقاً.', 'success');
+        sendSystemNotification('تم تفعيل الإشعارات بنجاح 🎉', 'شكراً لك على تفعيل إشعارات طلبات فرشوط! ستصلك هنا تحديثات طلبك خطوة بخطوة.');
+      } else {
+        showToast('⚠️ لم يتم منح صلاحية الإشعارات. يرجى تفعيلها من إعدادات المتصفح لتتبع طلباتك.', 'info');
+      }
+    } catch (err) {
+      console.error('Error requesting notifications:', err);
+      showToast('⚠️ حدث خطأ أثناء محاولة تفعيل الإشعارات.', 'error');
+    }
+  };
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallPromptBanner, setShowInstallPromptBanner] = useState<boolean>(() => {
+    return sessionStorage.getItem('dismiss_install_banner') !== 'true';
+  });
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      if (sessionStorage.getItem('dismiss_install_banner') !== 'true') {
+        setShowInstallPromptBanner(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setShowInstallPromptBanner(false);
+      showToast('🎉 شكراً لك على تنزيل وتثبيت تطبيق طلبات فرشوط على هاتفك!', 'success');
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('🔄 جاري تثبيت تطبيق طلبات فرشوط على هاتفك...', 'success');
+        }
+        setDeferredPrompt(null);
+        setShowInstallPromptBanner(false);
+      } catch (err) {
+        console.error('Error triggering PWA installation:', err);
+        setShowAppInstalledModal(true);
+      }
+    } else {
+      setShowAppInstalledModal(true);
+    }
+  };
+
+  // In-app Notifications State
+  const [notifications, setNotifications] = useState<InAppNotification[]>(() => {
+    const saved = localStorage.getItem('talabat_notifications');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [
+      {
+        id: 'n-welcome',
+        orderId: '',
+        title: 'مرحباً بك في طلبات فرشوط 🎉',
+        message: 'تم تفعيل نظام الإشعارات الذكي لتتبع حالة طلباتك فوراً لحظة بلحظة!',
+        type: 'system',
+        read: false,
+        date: new Date().toLocaleDateString('ar-EG', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
+
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isNotificationsMuted, setIsNotificationsMuted] = useState(() => {
+    return localStorage.getItem('notifications_muted') === 'true';
+  });
+  const [activeNotificationPopup, setActiveNotificationPopup] = useState<InAppNotification | null>(null);
+
+  // Sync notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('talabat_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Sync sound muted preference
+  useEffect(() => {
+    localStorage.setItem('notifications_muted', isNotificationsMuted ? 'true' : 'false');
+  }, [isNotificationsMuted]);
+
+  // Sound Synth Chime
+  const playNotificationSound = () => {
+    try {
+      if (isNotificationsMuted) return;
+
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      const playTone = (freq: number, startTime: number, duration: number) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        gain.gain.setValueAtTime(0.15, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = audioCtx.currentTime;
+      playTone(523.25, now, 0.3); // C5
+      playTone(659.25, now + 0.12, 0.4); // E5
+    } catch (error) {
+      console.warn('Audio context failed or not allowed:', error);
+    }
+  };
+
+  // Automatically dismiss floating notification alert after 7 seconds
+  useEffect(() => {
+    if (activeNotificationPopup) {
+      const timer = setTimeout(() => {
+        setActiveNotificationPopup(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeNotificationPopup]);
 
   useEffect(() => {
     const handleUpdateEvent = () => {
@@ -129,6 +389,63 @@ export default function App() {
       window.removeEventListener('sw-update-available', handleUpdateEvent);
     };
   }, []);
+
+  const downloadPCUrlShortcut = () => {
+    const currentUrl = window.location.origin;
+    const fileContent = `[InternetShortcut]\nURL=${currentUrl}\nIconIndex=0\nIconFile=chrome.exe\n`;
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const element = document.createElement('a');
+    element.href = URL.createObjectURL(blob);
+    element.download = 'طلبات_فرشوط.url';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    showToast('📥 تم تحميل اختصار سطح المكتب بنجاح! اسحبه لسطح المكتب وافتحه لتصفح التطبيق كبرنامج مستقل.', 'success');
+  };
+
+  const downloadPCInstallerBat = () => {
+    const currentUrl = window.location.origin;
+    const fileContent = `@echo off\r\n` +
+      `chcp 65001 > nul\r\n` +
+      `title تثبيت تطبيق طلبات فرشوط على الكمبيوتر\r\n` +
+      `echo ====================================================\r\n` +
+      `echo      تثبيت تطبيق طلبات فرشوط - مركز فرشوط 🛵\r\n` +
+      `echo ====================================================\r\n` +
+      `echo.\r\n` +
+      `echo جاري إنشاء اختصار للتطبيق على سطح المكتب الخاص بك...\r\n` +
+      `echo.\r\n` +
+      `set "SCRIPT_DIR=%temp%"\r\n` +
+      `set "VBS_FILE=%SCRIPT_DIR%\\CreateShortcut.vbs"\r\n` +
+      `\r\n` +
+      `(\r\n` +
+      `echo Set oWS = CreateObject^("WScript.Shell"^)\r\n` +
+      `echo sLinkFile = oWS.SpecialFolders^("Desktop"^)^ & "\\\\طلبات فرشوط.lnk"\r\n` +
+      `echo Set oLink = oWS.CreateShortcut^(sLinkFile^)\r\n` +
+      `echo oLink.TargetPath = "${currentUrl}"\r\n` +
+      `echo oLink.Description = "طلبات فرشوط - دليفري مطاعم وبقالة بمركز فرشوط"\r\n` +
+      `echo oLink.IconLocation = "chrome.exe,0"\r\n` +
+      `echo oLink.Save\r\n` +
+      `) > "%VBS_FILE%"\r\n` +
+      `\r\n` +
+      `cscript /nologo "%VBS_FILE%"\r\n` +
+      `del "%VBS_FILE%"\r\n` +
+      `\r\n` +
+      `echo ====================================================\r\n` +
+      `echo 🎉 تم إنشاء اختصار "طلبات فرشوط" بنجاح على سطح المكتب!\r\n` +
+      `echo يمكنك الآن فتح التطبيق مباشرة من سطح المكتب في أي وقت.\r\n` +
+      `echo ====================================================\r\n` +
+      `echo.\r\n` +
+      `pause\r\n`;
+
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const element = document.createElement('a');
+    element.href = URL.createObjectURL(blob);
+    element.download = 'تثبيت_طلبات_فرشوط.bat';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    showToast('📥 تم تحميل مثبت الكمبيوتر السريع (.BAT) بنجاح! قم بتشغيل الملف لإنشاء اختصار مباشر على سطح المكتب.', 'success');
+  };
 
   const handleCheckForUpdates = () => {
     setCheckingForUpdates(true);
@@ -288,6 +605,24 @@ export default function App() {
     }, 3500);
   };
 
+  // Toggle favorite shops
+  const handleToggleFavorite = (shopId: string) => {
+    setFavorites((prev) => {
+      const next = prev.includes(shopId) ? prev.filter((id) => id !== shopId) : [...prev, shopId];
+      localStorage.setItem('talabat_favorites', JSON.stringify(next));
+      showToast(prev.includes(shopId) ? '💔 تم إزالة المتجر من المفضلة بفرشوط' : '❤️ تم إضافة المتجر للمفضلة بفرشوط!', 'success');
+      return next;
+    });
+  };
+
+  // Toggle mockup / full screen mode
+  const handleToggleFullScreen = () => {
+    const nextVal = !isFullScreen;
+    setIsFullScreen(nextVal);
+    localStorage.setItem('is_full_screen', nextVal.toString());
+    showToast(nextVal ? '🖥️ تم تفعيل وضع ملء الشاشة الكامل' : '📱 تم الرجوع لوضع محاكاة الهاتف الذكي', 'info');
+  };
+
   // Helper: Get Active Order
   const activeOrder = orders.find((o) => o.id === activeOrderId);
 
@@ -360,6 +695,40 @@ export default function App() {
         );
       }, 300);
     }
+  };
+
+  // Wallet Complete Recharge Handler
+  const handleCompleteRecharge = (amount: number, methodLabel: string) => {
+    const newBalance = Math.round((walletBalance + amount) * 100) / 100;
+    setWalletBalance(newBalance);
+    localStorage.setItem('talabat_wallet_balance', newBalance.toString());
+
+    const newTx: WalletTransaction = {
+      id: `t-${Math.floor(100000 + Math.random() * 900000)}`,
+      type: 'deposit',
+      amount: amount,
+      description: `شحن رصيد المحفظة عبر ${methodLabel} 🔌💳`,
+      date: new Date().toLocaleDateString('ar-EG', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+    const updatedTxs = [newTx, ...walletTransactions];
+    setWalletTransactions(updatedTxs);
+    localStorage.setItem('talabat_wallet_transactions', JSON.stringify(updatedTxs));
+    
+    setRechargeStep('success');
+    showToast(`تم شحن ${amount} ج.م بنجاح عبر ${methodLabel}! 🎉`, 'success');
+  };
+
+  const handleSaveDefaultAddressAndPhone = (addr: string, ph: string, walletNum?: string, walletProv?: string) => {
+    const updated = { 
+      ...(customerAccount || { name: 'عميل طلبات فرشوط', phone: '', address: '' }), 
+      address: addr, 
+      phone: ph,
+      ...(walletNum ? { mobileWalletNumber: walletNum } : {}),
+      ...(walletProv ? { mobileWalletProvider: walletProv } : {})
+    };
+    setCustomerAccount(updated);
+    localStorage.setItem('customer_account_data', JSON.stringify(updated));
+    showToast('تم تحديث عنوان التوصيل ورقم الهاتف ومحفظتك الافتراضية بنجاح بملفك الشخصي! 💾', 'success');
   };
 
   // Checkout Handler
@@ -463,12 +832,32 @@ export default function App() {
       scheduledTime,
     };
 
+    if (paymentMethod === 'wallet') {
+      const newBalance = Math.round((walletBalance - total) * 100) / 100;
+      setWalletBalance(newBalance);
+      localStorage.setItem('talabat_wallet_balance', newBalance.toString());
+
+      const newTx: WalletTransaction = {
+        id: `t-${Math.floor(100000 + Math.random() * 900000)}`,
+        type: 'withdrawal',
+        amount: total,
+        description: `شراء طلب مأكولات رقم #${newOrder.id} 🍔`,
+        date: new Date().toLocaleDateString('ar-EG', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      const updatedTxs = [newTx, ...walletTransactions];
+      setWalletTransactions(updatedTxs);
+      localStorage.setItem('talabat_wallet_transactions', JSON.stringify(updatedTxs));
+    }
+
     const updatedOrders = [newOrder, ...orders];
     setOrders(updatedOrders);
     setActiveOrderId(newOrder.id);
     setCart([]); // Clear Cart
     setActiveTab('tracking'); // Auto jump to live tracking!
-    if (isScheduled) {
+    if (paymentMethod === 'wallet') {
+      const remaining = Math.round((walletBalance - total) * 100) / 100;
+      showToast(`تم خصم ${total} ج.م من محفظتك الإلكترونية بنجاح! الرصيد المتبقي: ${remaining} ج.م 💳`, 'success');
+    } else if (isScheduled) {
       showToast(`تمت جدولة طلبك بنجاح ليوم ${scheduledDate} الساعة ${scheduledTime}! 📅`, 'success');
     } else {
       showToast('تم تقديم طلبك بنجاح! جاري التوصيل 🛵', 'success');
@@ -477,13 +866,67 @@ export default function App() {
 
   // Track order state updates by ID
   const handleUpdateOrderStatusById = (orderId: string, status: OrderStatus, progress: number) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((o) =>
+    setOrders((prevOrders) => {
+      const order = prevOrders.find((o) => o.id === orderId);
+      if (order && order.status !== status) {
+        // Build beautiful notification titles and messages in Arabic
+        let statusTitle = '';
+        let statusDesc = '';
+        
+        switch (status) {
+          case 'received':
+            statusTitle = 'تم استلام طلبك 📋';
+            statusDesc = `المطعم (${order.shopName}) استلم طلبك وهو قيد المراجعة والتحضير الآن.`;
+            break;
+          case 'preparing':
+            statusTitle = 'جاري تحضير طلبك 🍳';
+            statusDesc = `طلبك رقم #${orderId.slice(-4)} قيد التجهيز الآن في مطبخ ${order.shopName}.`;
+            break;
+          case 'on_the_way':
+            statusTitle = 'الطلب في الطريق 🛵';
+            statusDesc = `خرج طلبك مع كابتن التوصيل وهو في طريقه إليك الآن!`;
+            break;
+          case 'delivered':
+            statusTitle = 'تم توصيل طلبك 🎉';
+            statusDesc = `تم تسليم طلبك بنجاح من ${order.shopName}! بالهنا والشفا لك.`;
+            break;
+        }
+
+        if (statusTitle) {
+          const newNotification: InAppNotification = {
+            id: `n-${Date.now()}`,
+            orderId,
+            title: statusTitle,
+            message: statusDesc,
+            type: 'status_change',
+            status,
+            read: false,
+            date: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString('ar-EG', { month: 'numeric', day: 'numeric' }),
+            shopName: order.shopName,
+          };
+
+          // Update notifications state
+          setNotifications((prev) => [newNotification, ...prev]);
+          
+          // Trigger floating popup animation/alert
+          setActiveNotificationPopup(newNotification);
+          
+          // Trigger PWA/Phone System Web Notification
+          sendSystemNotification(statusTitle, statusDesc, order.shopImage || '/pwa_icon.jpg');
+          
+          // Play synth chime!
+          setTimeout(() => {
+            playNotificationSound();
+          }, 50);
+        }
+      }
+
+      return prevOrders.map((o) =>
         o.id === orderId
           ? { ...o, status, trackingProgress: progress }
           : o
-      )
-    );
+      );
+    });
   };
 
   // Track order state updates (for compatibility with customer OrderTracker)
@@ -542,13 +985,30 @@ export default function App() {
     }
   };
 
-  // Filtering Shops based on search and tab
+  // Filtering Shops based on search, tab, and extra filters
   const filteredShops = shops.filter((shop) => {
     const matchesCategory = shop.category === selectedCategory;
     const matchesSearch =
       shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    
+    // filter by favorites
+    const matchesFavorites = shopFilter === 'favorites' ? favorites.includes(shop.id) : true;
+    
+    // filter by featured
+    const matchesFeatured = shopFilter === 'featured' ? shop.isFeatured : true;
+    
+    return matchesCategory && matchesSearch && matchesFavorites && matchesFeatured;
+  }).sort((a, b) => {
+    if (shopFilter === 'rating') {
+      return b.rating - a.rating;
+    }
+    if (shopFilter === 'fastest') {
+      const timeA = parseInt(a.deliveryTime) || 30;
+      const timeB = parseInt(b.deliveryTime) || 30;
+      return timeA - timeB;
+    }
+    return 0; // default order
   });
 
   // Search through all items across shops (allowing direct product searches)
@@ -567,105 +1027,84 @@ export default function App() {
     ? shops.find((s) => s.id === cart[0].item.shopId)?.deliveryFee || 10
     : 10;
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col lg:flex-row items-center justify-center font-sans md:py-6 relative overflow-hidden" dir="rtl">
-      
-      {/* Premium ambient light glow effects for luxury feel */}
-      <div className="hidden lg:block absolute top-1/4 left-[12%] w-[450px] h-[450px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="hidden lg:block absolute bottom-1/4 right-[5%] w-[400px] h-[400px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
-      
-      {/* Desktop Background Panel with branding - hidden on mobile */}
-      <div className="hidden lg:flex fixed top-0 right-0 bottom-0 left-[430px] p-12 flex-col justify-between select-none z-10">
-        <div className="space-y-8 max-w-xl">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-[0_8px_24px_rgba(239,68,68,0.4)] text-3xl transform hover:rotate-12 transition-transform duration-300">
-              🛵
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans relative" dir="rtl">
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-6 left-4 right-4 md:left-auto md:right-6 md:w-[380px] z-[9999] flex items-center gap-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 shadow-2xl border border-white/10 animate-bounce">
+          <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${toast.type === 'success' ? 'bg-emerald-400 animate-pulse' : toast.type === 'info' ? 'bg-sky-400' : 'bg-red-400'}`} />
+          <span className="text-[11px] font-bold leading-none">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="text-white/40 hover:text-white mr-auto cursor-pointer">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Dynamic Floating In-App Notification Alert */}
+      {activeNotificationPopup && (
+        <div 
+          className="fixed top-20 left-4 right-4 md:left-auto md:right-6 md:w-[420px] z-[9999] bg-white text-slate-900 rounded-[24px] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex flex-col gap-3 animate-in slide-in-from-top-4 duration-300"
+          dir="rtl"
+        >
+          <div className="flex items-start gap-3">
+            <div className={`h-11 w-11 rounded-2xl shrink-0 flex items-center justify-center text-xl shadow-md ${
+              activeNotificationPopup.status === 'received' 
+                ? 'bg-blue-50 text-blue-600'
+                : activeNotificationPopup.status === 'preparing'
+                  ? 'bg-amber-50 text-amber-600'
+                  : activeNotificationPopup.status === 'on_the_way'
+                    ? 'bg-red-50 text-red-600'
+                    : 'bg-emerald-50 text-emerald-600'
+            }`}>
+              {activeNotificationPopup.status === 'received' ? '📋' : activeNotificationPopup.status === 'preparing' ? '🍳' : activeNotificationPopup.status === 'on_the_way' ? '🛵' : '🎉'}
             </div>
-            <div>
-              <h1 className="font-extrabold text-3xl text-white tracking-tight bg-gradient-to-l from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">طلبات فرشوط</h1>
-              <p className="text-xs text-red-400/80 font-bold -mt-0.5 tracking-wide">تطبيق المأكولات والبقالة المتكامل بمركز فرشوط 🇪🇬</p>
+            <div className="text-right flex-grow">
+              <span className="text-[10px] bg-slate-100 text-slate-500 font-black px-2 py-0.5 rounded-md">تحديث مباشر لحالة طلبك ⚡</span>
+              <h4 className="font-black text-xs text-slate-900 mt-1">{activeNotificationPopup.title}</h4>
+              <p className="text-[10px] text-slate-500 mt-0.5 font-semibold leading-relaxed">{activeNotificationPopup.message}</p>
             </div>
-          </div>
-
-          <div className="space-y-5 bg-slate-900/40 backdrop-blur-xl p-7 rounded-[32px] border border-white/5 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-            
-            <span className="inline-flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-400 px-3.5 py-1.5 rounded-full text-[11px] font-black">
-              <Smartphone className="h-3.5 w-3.5" />
-              <span>تطبيق هاتف ذكي مستقل جاهز للتنزيل والعمل</span>
-            </span>
-            
-            <h2 className="text-2xl font-black text-white leading-tight">
-              واجهة تفاعلية ذكية ومستقلة لكل مستخدم بفرشوط!
-            </h2>
-            <p className="text-xs text-slate-300 leading-relaxed font-semibold">
-              تم تطوير هذا الإصدار ليعمل بكفاءة فائقة على الهواتف الذكية. تصفح المتاجر، تتبع طلبياتك محلياً بمركز فرشوط، وأدر حسابك بكل سلاسة.
-            </p>
-
-            <div className="border-t border-slate-800 pt-5 space-y-4">
-              <h4 className="font-bold text-xs text-red-400 flex items-center gap-1.5">
-                <span>💡</span>
-                <span>كيفية تجربة الدورة الكاملة (العميل 🧑‍💼 ➔ المطعم 🏪 ➔ الطيار 🏍️):</span>
-              </h4>
-              <ol className="text-[11px] text-slate-300 space-y-2.5 list-decimal list-inside pr-1 font-medium leading-relaxed">
-                <li>ادخل كـ <strong className="text-red-400 font-bold">"عميل"</strong> لتصفح المنيوهات وإجراء طلب تجريبي بفرشوط.</li>
-                <li>سجل الخروج من <strong className="text-slate-100">"حسابي"</strong> ثم ادخل كـ <strong className="text-red-400 font-bold">"المطعم"</strong> لرؤية الطلب والبدء بتحضيره (كلمة المرور: <code className="bg-slate-800 border border-slate-700/50 px-1.5 py-0.5 rounded font-mono font-bold text-slate-200 text-[10px]">merchant</code>).</li>
-                <li>سجل الخروج وادخل كـ <strong className="text-red-400 font-bold">"طيار"</strong> لقبول الطلب وتوصيله (كلمة المرور: <code className="bg-slate-800 border border-slate-700/50 px-1.5 py-0.5 rounded font-mono font-bold text-slate-200 text-[10px]">driver</code>).</li>
-                <li>راقب التحديثات اللحظية والتغيرات المباشرة فوراً!</li>
-              </ol>
-
-              <div className="pt-3 border-t border-slate-800/60 space-y-3">
-                <div className="bg-slate-900/60 border border-white/5 p-4 rounded-2xl flex items-center justify-between text-[11px] font-bold text-slate-300">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] text-slate-400 font-extrabold block">الدعم الفني والشكاوى لـ طلبات فرشوط:</span>
-                    <div className="text-[11px] font-black text-emerald-400 flex items-center gap-1.5 mt-0.5">
-                      <span>🟢 متاح المتابعة والمساعدة الفورية عبر الواتساب</span>
-                    </div>
-                  </div>
-                  <span className="text-xl animate-pulse">💬</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-1.5 text-xs text-slate-500 font-medium">
-          <p className="text-slate-400">تطبيق طلبات فرشوط - جميع حقوق النشر محفوظة باسم حسن الدربي © 2026</p>
-          <p className="text-[10px] text-slate-500">مطاعم بقالة وكافيهات • جمهورية مصر العربية 🇪🇬 • هاتف ذكي مطور</p>
-        </div>
-      </div>
-
-      {/* Realistic Android Phone Mockup container */}
-      <div className="w-full min-h-screen md:min-h-0 md:h-[840px] md:w-[390px] md:rounded-[48px] md:border-[12px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(239,68,68,0.15),0_30px_70px_rgba(15,23,42,0.6)] md:relative md:overflow-hidden md:flex md:flex-col bg-slate-50 select-none md:scale-[0.98] lg:scale-100 transition-all duration-500 md:ring-8 md:ring-slate-900/15 z-20">
-        
-        {/* Android Punch Hole Camera Bezel - Hidden on mobile */}
-        <div className="hidden md:flex absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5.5 bg-slate-900 rounded-full z-50 items-center justify-between px-3 shadow-inner border border-white/5">
-          <div className="h-1.5 w-1.5 rounded-full bg-slate-800" />
-          <div className="h-2 w-2 rounded-full bg-blue-900/60 shadow" />
-        </div>
-
-        {/* Android Status Bar (Fixed at top) */}
-        <div className="bg-white border-b border-slate-100 text-slate-700 text-[10px] font-extrabold px-5 py-3 flex items-center justify-between z-40 shrink-0">
-          <span className="font-mono tracking-wide">{statusBarTime}</span>
-          <div className="flex items-center gap-1.5">
-            <span>📶 4G</span>
-            <span>🛜</span>
-            <span>🔋 98%</span>
-          </div>
-        </div>
-
-        {/* Toast Notification (Scoped inside Mockup) */}
-        {toast && (
-          <div className="absolute top-14 left-4 right-4 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 shadow-2xl border border-white/10 animate-bounce">
-            <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${toast.type === 'success' ? 'bg-emerald-400 animate-pulse' : toast.type === 'info' ? 'bg-sky-400' : 'bg-red-400'}`} />
-            <span className="text-[11px] font-bold leading-none">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="text-white/40 hover:text-white mr-auto cursor-pointer">
-              <X className="h-3.5 w-3.5" />
+            <button 
+              onClick={() => setActiveNotificationPopup(null)} 
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-50 cursor-pointer shrink-0"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
-        )}
 
-        {isRegisterModalOpen && (
+          <div className="flex items-center justify-between border-t border-slate-50 pt-2.5 mt-1">
+            <button
+              onClick={() => {
+                if (activeNotificationPopup.orderId) {
+                  setActiveOrderId(activeNotificationPopup.orderId);
+                  setActiveTab('tracking');
+                  setSelectedShopId(null);
+                }
+                setActiveNotificationPopup(null);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] px-4 py-1.5 rounded-xl transition-all shadow-md shadow-red-500/10 active:scale-95 cursor-pointer"
+            >
+              تتبع الطلب الآن 🛵
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] text-slate-400 font-bold">{activeNotificationPopup.date}</span>
+              <button
+                onClick={() => setIsNotificationsMuted(!isNotificationsMuted)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                title={isNotificationsMuted ? "تفعيل الصوت" : "كتم الصوت"}
+              >
+                {isNotificationsMuted ? <VolumeX className="h-3.5 w-3.5 text-red-500" /> : <Volume2 className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRegisterModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <RegisterModal
             onClose={() => {
               setIsRegisterModalOpen(false);
@@ -675,32 +1114,361 @@ export default function App() {
             pendingAddress={pendingCheckoutData?.address}
             pendingPhone={pendingCheckoutData?.phone}
           />
-        )}
+        </div>
+      )}
 
-        {isSupportModalOpen && (
+      {isSupportModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <SupportModal onClose={() => setIsSupportModalOpen(false)} />
-        )}
+        </div>
+      )}
 
-        {/* Update Notification Ribbon / Banner */}
-        {isUpdateAvailable && !showUpdateModal && (
-          <div 
-            onClick={() => setShowUpdateModal(true)}
-            className="absolute top-14 left-4 right-4 z-40 bg-gradient-to-r from-red-600 to-rose-500 text-white rounded-2xl px-4 py-3 shadow-xl border border-red-500/20 flex items-center justify-between gap-3 animate-pulse cursor-pointer hover:brightness-110 transition-all"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="text-lg">🚀</span>
-              <div className="text-right">
-                <h5 className="text-[10px] font-black tracking-tight text-white/90">يتوفر إصدار جديد لبرنامج طلبات فرشوط</h5>
-                <p className="text-[9px] text-red-50/85 font-bold">انقر هنا لتحديث التطبيق مجاناً فوراً v1.1.0</p>
+      {isRechargeModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border border-slate-100/80 animate-in fade-in zoom-in duration-200 text-right">
+            {/* Header */}
+            <div className="bg-slate-900 p-6 text-white relative">
+              <button 
+                onClick={() => setIsRechargeModalOpen(false)}
+                className="absolute top-6 left-6 text-white/70 hover:text-white hover:bg-white/10 p-1.5 rounded-full transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-xl border border-red-500/30">
+                  ⚡
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm">شاحن المحفظة الإلكترونية السريع</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">شحن آمن وفوري بمركز فرشوط 🔒</p>
+                </div>
               </div>
             </div>
-            <span className="text-xs font-black bg-white/20 px-2 py-0.5 rounded-lg shrink-0">تحديث 🔄</span>
+
+            {/* Step 1: Input Amount and Method */}
+            {rechargeStep === 'input' && (
+              <div className="p-6 space-y-5">
+                {/* Balance Summary */}
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-400">رصيدك الحالي بالمحفظة:</span>
+                  <span className="text-sm font-black text-slate-800">{walletBalance.toFixed(2)} ج.م</span>
+                </div>
+
+                {/* Amount Choice */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500">اختر أو اكتب مبلغ الشحن (ج.م)</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['50', '100', '200', '500'].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setRechargeAmount(amt)}
+                        className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          rechargeAmount === amt
+                            ? 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/15'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {amt} ج.م
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="number"
+                    min="10"
+                    max="5000"
+                    value={rechargeAmount}
+                    onChange={(e) => setRechargeAmount(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-700 outline-none focus:border-red-500 text-center mt-2"
+                    placeholder="مبلغ مخصص (مثال: 150)"
+                  />
+                </div>
+
+                {/* Recharge Method Option */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500">طريقة شحن الرصيد</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRechargeMethod('vodafone')}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        rechargeMethod === 'vodafone'
+                          ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <Smartphone className="h-5 w-5 mb-1.5 shrink-0 text-red-500" />
+                      <span className="text-[10px] font-black">كاش (محفظة هاتف)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRechargeMethod('card')}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        rechargeMethod === 'card'
+                          ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <CreditCard className="h-5 w-5 mb-1.5 shrink-0 text-indigo-500" />
+                      <span className="text-[10px] font-black">بطاقة بنكية (فيزا)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRechargeMethod('fawry')}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        rechargeMethod === 'fawry'
+                          ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-base mb-1 shrink-0">🏪</span>
+                      <span className="text-[10px] font-black">منفذ فوري</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Gateway Detail Panel */}
+                <div className="border-t border-slate-100 pt-4">
+                  {rechargeMethod === 'vodafone' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-1">
+                        <label className="text-[10px] font-bold text-slate-400">رقم المحفظة (فودافون كاش / اتصالات / أورانج)</label>
+                        <input
+                          type="text"
+                          maxLength={11}
+                          value={rechargePhone}
+                          onChange={(e) => setRechargePhone(e.target.value)}
+                          placeholder="مثال: 01012345678"
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-left animate-none"
+                          dir="ltr"
+                        />
+                        <p className="text-[9px] text-slate-400 mt-0.5 text-right">سيتم إرسال رمز OTP للمحاكاة وتأكيد السحب الفوري من محفظتك بفرشوط.</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!/^01[0125]\d{8}$/.test(rechargePhone.trim())) {
+                            showToast('الرجاء إدخال رقم هاتف مصري صحيح مكون من 11 رقماً يبدأ بـ 01', 'error');
+                            return;
+                          }
+                          if (!rechargeAmount || Number(rechargeAmount) <= 0) {
+                            showToast('الرجاء تحديد مبلغ شحن صحيح أكبر من صفر', 'error');
+                            return;
+                          }
+                          setRechargeOtp('');
+                          setRechargeStep('otp');
+                        }}
+                        className="w-full bg-red-500 text-white rounded-xl py-2.5 text-center font-bold text-xs shadow-md hover:bg-red-600 transition-colors cursor-pointer"
+                      >
+                        طلب كود السداد والمتابعة
+                      </button>
+                    </div>
+                  )}
+
+                  {rechargeMethod === 'card' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-1">
+                        <label className="text-[10px] font-bold text-slate-400 text-right">اسم حامل البطاقة (بالعربية أو الإنجليزية)</label>
+                        <input
+                          type="text"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                          placeholder="مثال: حسن الدربي"
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-right"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-1">
+                        <label className="text-[10px] font-bold text-slate-400 text-right">رقم البطاقة البنكية</label>
+                        <input
+                          type="text"
+                          maxLength={19}
+                          value={cardNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\s?/g, '').replace(/(\d{4})/g, '$1 ').trim();
+                            setCardNumber(val);
+                          }}
+                          placeholder="4000 1234 5678 9010"
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-left"
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-1">
+                          <label className="text-[10px] font-bold text-slate-400 text-right">تاريخ الانتهاء</label>
+                          <input
+                            type="text"
+                            maxLength={5}
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(e.target.value)}
+                            placeholder="MM/YY"
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-center"
+                            dir="ltr"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-1">
+                          <label className="text-[10px] font-bold text-slate-400 text-right">كود الأمان CVV</label>
+                          <input
+                            type="password"
+                            maxLength={3}
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value)}
+                            placeholder="***"
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-center"
+                            dir="ltr"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!cardName.trim() || cardNumber.replace(/\s/g, '').length < 16) {
+                            showToast('الرجاء إدخال بيانات بطاقة بنكية صحيحة لمحاكاة الشحن', 'error');
+                            return;
+                          }
+                          const amt = Number(rechargeAmount) || 100;
+                          handleCompleteRecharge(amt, 'البطاقة البنكية فيزا 💳');
+                        }}
+                        className="w-full bg-slate-900 text-white rounded-xl py-2.5 text-center font-bold text-xs shadow-md hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Lock className="h-3.5 w-3.5 text-red-500" />
+                        <span>تأكيد خصم الرصيد بفرشوط</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {rechargeMethod === 'fawry' && (
+                    <div className="bg-amber-50/50 border border-amber-200/60 p-4 rounded-2xl text-amber-950 space-y-4">
+                      <div className="text-center">
+                        <span className="text-[10px] font-bold text-amber-800 block mb-1">كود الخدمة لمنفذ فوري 🏪</span>
+                        <div className="bg-white border border-amber-200 py-2.5 rounded-xl font-black text-lg text-slate-800 tracking-wider">
+                          78909873
+                        </div>
+                        <p className="text-[9px] text-amber-700/80 mt-1.5 leading-relaxed text-right">
+                          توجه لأي تاجر بفرشوط يمتلك ماكينة فوري وأخبره بالسداد على كود الخدمة هذا.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const amt = Number(rechargeAmount) || 100;
+                          handleCompleteRecharge(amt, 'فوري كود 🏪');
+                        }}
+                        className="w-full bg-amber-500 text-white hover:bg-amber-600 rounded-xl py-2.5 text-center font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        محاكاة سداد تاجر فوري وتفعيل الرصيد
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: OTP (Vodafone Cash verification) */}
+            {rechargeStep === 'otp' && (
+              <div className="p-6 space-y-5 text-center">
+                <div className="h-12 w-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto text-xl">
+                  💬
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-slate-800 text-sm">رمز التحقق لمرة واحدة OTP</h4>
+                  <p className="text-[10px] text-slate-400">تم إرسال رمز التحقق في رسالة نصية قصيرة إلى {rechargePhone} (محاكاة)</p>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    maxLength={4}
+                    value={rechargeOtp}
+                    onChange={(e) => setRechargeOtp(e.target.value)}
+                    placeholder="- - - -"
+                    className="w-32 bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-800 outline-none focus:border-red-500 text-center mx-auto block"
+                    dir="ltr"
+                  />
+                  <p className="text-[9px] text-slate-400 font-bold">يمكنك كتابة أي 4 أرقام للمتابعة بنجاح (الكود التجريبي: 1234)</p>
+                </div>
+
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const amt = Number(rechargeAmount) || 100;
+                      handleCompleteRecharge(amt, `محفظة كاش (${rechargePhone}) 📱`);
+                    }}
+                    className="flex-grow bg-red-500 text-white rounded-xl py-2.5 font-bold text-xs shadow-md hover:bg-red-600 transition-colors cursor-pointer"
+                  >
+                    تأكيد الدفع الآن
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRechargeStep('input')}
+                    className="flex-grow bg-slate-100 text-slate-600 rounded-xl py-2.5 font-bold text-xs hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    رجوع وتعديل البيانات
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Success Screen */}
+            {rechargeStep === 'success' && (
+              <div className="p-8 text-center space-y-5">
+                <div className="h-16 w-16 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center mx-auto text-3xl animate-bounce">
+                  ✨
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-black text-slate-800 text-base">تمت عملية الشحن بنجاح!</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed px-4 text-center">
+                    تم إيداع مبلغ <span className="text-emerald-600 font-black">{Number(rechargeAmount).toFixed(2)} ج.م</span> بنجاح داخل محفظتك الرقمية مسبقة الدفع.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-100/80 p-4 rounded-2xl flex justify-between items-center max-w-xs mx-auto text-xs">
+                  <span className="font-bold text-slate-400">رصيد المحفظة الإجمالي الحالي:</span>
+                  <span className="font-black text-emerald-600">{walletBalance.toFixed(2)} ج.م</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRechargeModalOpen(false)}
+                  className="w-full bg-slate-950 text-white rounded-xl py-3 text-center font-bold text-xs shadow-md hover:bg-slate-900 transition-colors cursor-pointer"
+                >
+                  العودة لتصفح حسابي
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Update Notification Ribbon / Banner */}
+      {isUpdateAvailable && !showUpdateModal && (
+        <div 
+          onClick={() => setShowUpdateModal(true)}
+          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-red-600 to-rose-500 text-white rounded-2xl px-5 py-3.5 shadow-2xl border border-red-500/20 flex items-center justify-between gap-4 animate-pulse cursor-pointer hover:brightness-110 transition-all max-w-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">🚀</span>
+            <div className="text-right">
+              <h5 className="text-[10px] font-black tracking-tight text-white/90">يتوفر إصدار جديد لبرنامج طلبات فرشوط</h5>
+              <p className="text-[9px] text-red-50/85 font-bold">انقر هنا لتحديث التطبيق مجاناً فوراً v1.1.0</p>
+            </div>
+          </div>
+          <span className="text-xs font-black bg-white/20 px-2 py-1 rounded-lg shrink-0">تحديث 🔄</span>
+        </div>
+      )}
 
         {/* System Update Details & Simulation Modal */}
         {showUpdateModal && (
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-[32px] w-full max-w-[340px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90%]">
               
               {/* Header with App Logo */}
@@ -825,7 +1593,7 @@ export default function App() {
 
         {/* App Installed Representation / Mockup Modal */}
         {showAppInstalledModal && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" dir="rtl">
             <div className="bg-white rounded-[32px] w-full max-w-[340px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92%] animate-slide-up">
               
               {/* Header */}
@@ -936,8 +1704,106 @@ export default function App() {
           </div>
         )}
 
-        {/* Scrollable Container inside Phone Mockup */}
-        <div className="flex-grow overflow-y-auto flex flex-col relative bg-slate-50" style={{ height: 'calc(100% - 32px)' }}>
+        {/* PC Installation Guide & File Creator Modal */}
+        {showPCInstallModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" dir="rtl">
+            <div className="bg-white rounded-[32px] w-full max-w-[420px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92%] animate-slide-up">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-tr from-slate-900 to-slate-800 p-6 text-center text-white relative shrink-0">
+                <button 
+                  onClick={() => setShowPCInstallModal(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white cursor-pointer bg-white/10 hover:bg-white/20 p-1.5 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <span className="text-3xl block mb-2">💻</span>
+                <h3 className="font-black text-base">تثبيت طلبات فرشوط على الكمبيوتر</h3>
+                <p className="text-[11px] text-red-400 font-extrabold mt-1">تصفح واطلب من الكمبيوتر مباشرة كبرنامج مستقل</p>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 overflow-y-auto space-y-5 text-right font-sans">
+                <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                  يمكنك تشغيل وتثبيت <b>طلبات فرشوط</b> على جهاز الكمبيوتر الشخصي أو المحمول (PC / Laptop / Mac) ليعمل كبرنامج مثبت على نظام التشغيل الخاص بك بدون متصفح وبسرعة فائقة.
+                </p>
+
+                {/* Option 1: Chrome/Edge Native Installation (Recommended) */}
+                <div className="bg-red-50/40 p-4 rounded-2xl border border-red-100/60 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-xs font-black">1</span>
+                    <h4 className="font-extrabold text-xs text-slate-800">التثبيت الذكي عبر المتصفح (موصى به)</h4>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-bold leading-relaxed pr-8">
+                    إذا كنت تستخدم متصفح <b>Google Chrome</b> أو <b>Microsoft Edge</b>:
+                  </p>
+                  <ul className="space-y-1.5 text-[10px] text-slate-600 font-bold pr-8 list-disc list-inside">
+                    <li>ابحث عن أيقونة <b>"شاشة مع سهم للأسفل"</b> أو علامة <b>(+)</b> في شريط العنوان بالأعلى بجوار المفضلة.</li>
+                    <li>اضغط عليها ثم اختر <b>"تثبيت" (Install)</b>.</li>
+                    <li>سيظهر التطبيق كبرنامج مستقل على سطح المكتب وقائمة ابدأ فوراً مع الأيقونة الرسمية!</li>
+                  </ul>
+                </div>
+
+                {/* Option 2: Download Installation Files */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-black">2</span>
+                    <h4 className="font-extrabold text-xs text-slate-800">تحميل ملفات التشغيل والاختصار المباشر</h4>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-bold leading-relaxed pr-8">
+                    إذا كنت تريد ملفاً قابلاً للتشغيل المباشر من سطح المكتب، اختر أحد الملفين بالأسفل:
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2.5 pt-1.5">
+                    {/* .URL Shortcut */}
+                    <button
+                      onClick={downloadPCUrlShortcut}
+                      className="w-full bg-white border border-slate-200 hover:border-red-200 hover:bg-red-50/20 text-slate-700 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm">🔗</span>
+                        <div className="text-right">
+                          <p className="font-black text-xs text-slate-800">تحميل اختصار سطح المكتب المباشر</p>
+                          <p className="text-[9px] text-slate-400 font-bold">ملف طلبات_فرشوط.url (آمن ويدعم Mac / Windows)</p>
+                        </div>
+                      </span>
+                      <ArrowDownLeft className="h-4 w-4 text-slate-400 animate-bounce" />
+                    </button>
+
+                    {/* .BAT Installer */}
+                    <button
+                      onClick={downloadPCInstallerBat}
+                      className="w-full bg-white border border-slate-200 hover:border-red-200 hover:bg-red-50/20 text-slate-700 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-sm">⚙️</span>
+                        <div className="text-right">
+                          <p className="font-black text-xs text-slate-800">تحميل مثبت سطح المكتب التلقائي</p>
+                          <p className="text-[9px] text-slate-400 font-bold">ملف تثبيت_طلبات_فرشوط.bat (خاص بويندوز فقط)</p>
+                        </div>
+                      </span>
+                      <ArrowDownLeft className="h-4 w-4 text-slate-400 animate-bounce" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
+                <button
+                  onClick={() => setShowPCInstallModal(false)}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-xs py-3 rounded-2xl transition-all cursor-pointer text-center"
+                >
+                  حسناً، إغلاق النافذة
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* Main Application Container */}
+        <div className="flex-grow flex flex-col relative bg-slate-50">
           
           {!isLoggedIn ? (
             /* Unified Landing & Login Selector Gateway */
@@ -945,27 +1811,31 @@ export default function App() {
               <div className="space-y-6 pt-6">
                 
                 {/* Logo and Greeting */}
-                <div className="text-center space-y-3">
-                  <div className="mx-auto h-20 w-20 rounded-[28px] bg-white border border-slate-100 shadow-xl overflow-hidden flex items-center justify-center animate-pulse">
-                    <img
-                      src={localStorage.getItem('android_app_icon') || '/pwa_icon.jpg'}
-                      alt="شعار طلبات فرشوط"
-                      className="h-full w-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                <div className="text-center space-y-4 pt-2">
+                  <div className="relative mx-auto h-22 w-22">
+                    {/* Glowing outer backdrop ring */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-red-500 to-amber-500 rounded-[30px] blur-md opacity-30 animate-pulse" />
+                    <div className="relative h-22 w-22 rounded-[28px] bg-white border-2 border-slate-100 shadow-[0_10px_25px_rgba(239,68,68,0.15)] overflow-hidden flex items-center justify-center transform hover:rotate-6 transition-transform duration-500">
+                      <img
+                        src={localStorage.getItem('android_app_icon') || '/pwa_icon.jpg'}
+                        alt="شعار طلبات فرشوط"
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">طلبات فرشوط</h2>
-                    <p className="text-xs text-slate-400 font-bold">تطبيق الدليفري والخدمات الموحد بمركز فرشوط 🇪🇬</p>
+                  <div className="space-y-1.5">
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">طلبات فرشوط</h2>
+                    <p className="text-xs text-slate-500 font-extrabold px-4 leading-normal">المنصة الشاملة والموحدة لتوصيل الطلبات بمركز فرشوط 🇪🇬</p>
                   </div>
-                  <div className="bg-red-50 text-red-600 rounded-full py-1.5 px-4 text-[10px] font-black inline-block border border-red-100">
-                    أهلاً بك في تطبيق الهاتف المحدث 👋
+                  <div className="bg-gradient-to-r from-red-50 to-rose-50 text-red-600 rounded-full py-1.5 px-5 text-[10px] font-black inline-block border border-red-100/60 shadow-sm">
+                    أهلاً بك في تطبيق الهاتف المطور 👋
                   </div>
                 </div>
 
                 {/* Portals Selection */}
-                <div className="space-y-3 pt-2">
-                  <span className="text-[11px] font-black text-slate-400 block pb-1">اختر نوع الحساب للدخول الآمن:</span>
+                <div className="space-y-3.5 pt-3">
+                  <span className="text-[11px] font-black text-slate-400 block pb-1 pr-1">الرجاء اختيار نوع الحساب للمتابعة:</span>
                   
                   {/* Customer Portal Card */}
                   <button
@@ -976,18 +1846,18 @@ export default function App() {
                       localStorage.setItem('talabat_is_logged_in', 'true');
                       setActiveTab('explore');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100/80 hover:border-red-200/80 p-5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(239,68,68,0.06)] flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-red-500 to-rose-500 text-white flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 shadow-[0_4px_12px_rgba(239,68,68,0.2)] transition-transform duration-300">
                         🧑‍💼
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-xs text-slate-800">الدخول كعميل للتسوق</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">اطلب طعامك المفضل، البقالة، والحلويات بفرشوط</p>
+                        <h4 className="font-black text-xs text-slate-800 group-hover:text-red-600 transition-colors">الدخول كعميل لتسوق المنتجات</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold leading-normal">اطلب مأكولاتك، البقالة والحلويات المفضلة بفرشوط</p>
                       </div>
                     </div>
-                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
+                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] group-hover:text-red-500 transition-all shrink-0" />
                   </button>
 
                   {/* Merchant Portal Card */}
@@ -998,18 +1868,18 @@ export default function App() {
                       localStorage.setItem('portal_role', 'merchant');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-amber-50/10 border border-slate-100 hover:border-amber-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full text-right bg-white hover:bg-amber-50/10 border border-slate-100/80 hover:border-amber-200/80 p-5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(245,158,11,0.06)] flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 shadow-[0_4px_12px_rgba(245,158,11,0.2)] transition-transform duration-300">
                         🏪
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-xs text-slate-800">بوابة شركاء فرشوط (المطاعم)</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">إدارة الأصناف، الأسعار، واستلام الطلبات المباشرة</p>
+                        <h4 className="font-black text-xs text-slate-800 group-hover:text-amber-600 transition-colors">بوابة شركاء فرشوط (المطاعم)</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold leading-normal">إدارة الأصناف والأسعار واستقبال طلبات الزبائن فورياً</p>
                       </div>
                     </div>
-                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
+                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] group-hover:text-amber-500 transition-all shrink-0" />
                   </button>
 
                   {/* Driver Portal Card */}
@@ -1020,18 +1890,18 @@ export default function App() {
                       localStorage.setItem('portal_role', 'driver');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-slate-50 border border-slate-100 hover:border-slate-300 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full text-right bg-white hover:bg-slate-50 border border-slate-100/80 hover:border-slate-300 p-5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(15,23,42,0.06)] flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-slate-900 text-white flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white flex items-center justify-center text-xl shrink-0 group-hover:scale-105 shadow-[0_4px_12px_rgba(15,23,42,0.2)] transition-transform duration-300">
                         🏍️
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-xs text-slate-800">بوابة كباتن التوصيل (الطيار)</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">استلام الطلبات الجاهزة لتوصيلها وكسب أرباح فورية</p>
+                        <h4 className="font-black text-xs text-slate-800 group-hover:text-slate-900 transition-colors">بوابة كباتن التوصيل (الطيار)</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold leading-normal">توصيل الطلبيات بفرشوط وتتبع الأرباح والمستحقات</p>
                       </div>
                     </div>
-                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
+                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] group-hover:text-slate-900 transition-all shrink-0" />
                   </button>
 
                   {/* Admin Portal Card */}
@@ -1042,18 +1912,18 @@ export default function App() {
                       localStorage.setItem('portal_role', 'admin');
                       localStorage.setItem('talabat_is_logged_in', 'true');
                     }}
-                    className="w-full text-right bg-white hover:bg-red-50/10 border border-slate-100 hover:border-red-200 p-4.5 rounded-[22px] transition-all duration-300 shadow-sm hover:shadow flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full text-right bg-white hover:bg-emerald-50/10 border border-slate-100/80 hover:border-emerald-200/80 p-5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(16,185,129,0.06)] flex items-center justify-between group cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center text-xl shrink-0 group-hover:scale-105 shadow-[0_4px_12px_rgba(16,185,129,0.2)] transition-transform duration-300">
                         ⚙️
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-xs text-slate-800">لوحة الإدارة والنظام</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium leading-normal">إضافة المطاعم، إدارة المنتجات، ومراقبة العمليات</p>
+                        <h4 className="font-black text-xs text-slate-800 group-hover:text-emerald-600 transition-colors">لوحة الإدارة والنظام</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-bold leading-normal">تعديل المطاعم والأصناف والتحكم الشامل بطلبك</p>
                       </div>
                     </div>
-                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] transition-transform shrink-0" />
+                    <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:translate-x-[-4px] group-hover:text-emerald-500 transition-all shrink-0" />
                   </button>
                 </div>
 
@@ -1077,29 +1947,247 @@ export default function App() {
           ) : (
             /* Logged-In Portal Dashboard */
             <>
-              {/* Compact Mobile Top Header (Customer Role Only) */}
-              {currentRole === 'customer' && (
-                <header className="bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm shrink-0">
-                  <div className="flex items-center gap-2" onClick={() => { setSelectedShopId(null); setActiveTab('explore'); }}>
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-md">
-                      <span className="text-base">🛵</span>
-                    </div>
-                    <div>
-                      <span className="font-black text-xs text-slate-800 block tracking-tight">طلبات فرشوط</span>
-                      <span className="text-[9px] text-slate-400 font-bold block -mt-1">قنا، مركز فرشوط 📍</span>
-                    </div>
+              {/* Premium Unified Responsive Header for PC and Mobile */}
+              <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] shrink-0">
+                <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => { setSelectedShopId(null); setActiveTab('explore'); }}>
+                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-md shadow-red-500/10">
+                    <span className="text-lg">🛵</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-sm sm:text-base text-slate-900 block tracking-tight">طلبات فرشوط</span>
+                    <span className="text-[10px] text-slate-400 font-bold block -mt-0.5">المنصة الموحدة لمركز فرشوط 📍</span>
+                  </div>
+                </div>
+
+                {/* Center Section: Navigation or Active Portal Details */}
+                <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200/60 px-4 py-1.5 rounded-full text-xs font-black text-slate-700">
+                  <span>📍 المركز: فرشوط البلد</span>
+                  <span className="text-slate-300">|</span>
+                  <span className="text-red-600 font-bold">
+                    {currentRole === 'admin' 
+                      ? 'بوابة الإدارة العامة 🛠️' 
+                      : currentRole === 'merchant' 
+                        ? 'لوحة إدارة المتجر 🏪' 
+                        : currentRole === 'driver' 
+                          ? 'بوابة كابتن التوصيل 🏍️' 
+                          : 'بوابة العميل التجريبية 🧑‍💼'}
+                  </span>
+                </div>
+
+                {/* Left Section: Support & Logout controls */}
+                <div className="flex items-center gap-2.5">
+                  <span className="hidden sm:inline-flex text-[10px] bg-red-50 border border-red-100 text-red-600 font-extrabold px-3 py-1.5 rounded-xl">
+                    خصم 30% كود: MASR30 ✨
+                  </span>
+                  
+                  <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-[11px] px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 border border-slate-200/50"
+                  >
+                    <span>💬 الدعم</span>
+                  </button>
+
+                  {/* Notification Bell with Badge & Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                      className={`relative p-2 rounded-xl transition-all cursor-pointer border flex items-center justify-center h-8.5 w-8.5 ${
+                        isNotificationsOpen 
+                          ? 'bg-red-50 text-red-600 border-red-200' 
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/50'
+                      }`}
+                      title="الإشعارات والتنبيهات"
+                    >
+                      {unreadCount > 0 ? (
+                        <BellRing className="h-4 w-4 text-red-600 animate-pulse" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )}
+                      
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-red-600 text-white rounded-full text-[8px] font-black flex items-center justify-center animate-pulse shadow-md shadow-red-500/30">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Notification Center Dropdown Portal */}
+                    {isNotificationsOpen && (
+                      <div className="absolute left-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.12)] border border-slate-100 z-50 overflow-hidden text-right animate-in fade-in slide-in-from-top-2 duration-200" dir="rtl">
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-black text-xs text-slate-900">مركز الإشعارات الذكي</h4>
+                            <span className="text-[8px] bg-red-100 text-red-600 font-extrabold px-1.5 py-0.5 rounded-full">تحديث مباشر</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {unreadCount > 0 && (
+                              <button 
+                                onClick={() => {
+                                  setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                  showToast('تم تحديد جميع الإشعارات كمقروءة ✓', 'info');
+                                }}
+                                className="text-[10px] text-red-500 hover:text-red-600 font-bold transition-colors cursor-pointer"
+                              >
+                                قراءة الكل
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setNotifications([]);
+                                showToast('تم مسح سجل الإشعارات بنجاح 🗑️', 'info');
+                              }}
+                              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                              title="مسح السجل"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setIsNotificationsMuted(!isNotificationsMuted)}
+                              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                              title={isNotificationsMuted ? "تفعيل الصوت" : "كتم الصوت"}
+                            >
+                              {isNotificationsMuted ? <VolumeX className="h-3.5 w-3.5 text-red-500" /> : <Volume2 className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* List container */}
+                        <div className="max-h-[340px] overflow-y-auto divide-y divide-slate-50">
+                          {notifications.length === 0 ? (
+                            <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2">
+                              <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+                                🔔
+                              </div>
+                              <p className="text-slate-400 text-[10px] font-bold">لا توجد إشعارات حالياً</p>
+                              <p className="text-slate-300 text-[9px]">سيتم تنبيهك بتحديثات حالة الطلب فور حدوثها!</p>
+                            </div>
+                          ) : (
+                            notifications.map((notification) => (
+                              <div 
+                                key={notification.id}
+                                onClick={() => {
+                                  // Mark as read
+                                  setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+                                  if (notification.orderId) {
+                                    setActiveOrderId(notification.orderId);
+                                    setActiveTab('tracking');
+                                    setSelectedShopId(null);
+                                    setIsNotificationsOpen(false);
+                                  }
+                                }}
+                                className={`p-3.5 text-right transition-colors cursor-pointer flex gap-3 items-start hover:bg-slate-50 ${
+                                  !notification.read ? 'bg-red-50/20' : ''
+                                }`}
+                              >
+                                <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-sm shadow-sm ${
+                                  notification.status === 'received' 
+                                    ? 'bg-blue-50 text-blue-500' 
+                                    : notification.status === 'preparing'
+                                      ? 'bg-amber-50 text-amber-500'
+                                      : notification.status === 'on_the_way'
+                                        ? 'bg-red-50 text-red-500'
+                                        : notification.status === 'delivered'
+                                          ? 'bg-emerald-50 text-emerald-500'
+                                          : 'bg-slate-50 text-slate-500'
+                                }`}>
+                                  {notification.status === 'received' ? '📋' : notification.status === 'preparing' ? '🍳' : notification.status === 'on_the_way' ? '🛵' : notification.status === 'delivered' ? '🎉' : '🔔'}
+                                </div>
+                                
+                                <div className="flex-grow">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h5 className={`text-[11px] font-black ${!notification.read ? 'text-slate-900' : 'text-slate-700'}`}>
+                                      {notification.title}
+                                    </h5>
+                                    <span className="text-[8px] text-slate-400 shrink-0 font-bold">{notification.date}</span>
+                                  </div>
+                                  <p className="text-[9px] text-slate-500 mt-1 leading-relaxed">{notification.message}</p>
+                                  
+                                  {notification.orderId && (
+                                    <span className="inline-flex items-center gap-1 text-[8px] text-red-500 font-extrabold mt-1.5 hover:underline">
+                                      <span>انقر للتتبع الحي 🛵</span>
+                                      <span>رقم الأوردر: #{notification.orderId.slice(-4)}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {notifications.length > 0 && (
+                          <div className="p-2.5 border-t border-slate-100 bg-slate-50 text-center text-[9px] text-slate-400 font-bold">
+                            المنصة الذكية الموحدة لمركز فرشوط 📍
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] bg-red-50 text-red-500 font-extrabold px-2 py-1 rounded-full">
-                      خصم 30% كود: MASR30 ✨
-                    </span>
-                  </div>
-                </header>
-              )}
+                  <button
+                    onClick={() => {
+                      setIsLoggedIn(false);
+                      localStorage.removeItem('talabat_is_logged_in');
+                      setToast({ message: 'تم تسجيل الخروج بنجاح 👋', type: 'info' });
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white font-black text-[11px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-red-500/10"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span className="hidden xs:inline">تسجيل الخروج</span>
+                  </button>
+                </div>
+              </header>
 
               {/* Main Container */}
-              <main className="flex-grow w-full p-4 pb-24 overflow-y-auto bg-slate-50">
+              <main className={`flex-grow w-full p-4 pb-24 overflow-y-auto bg-slate-50 ${isFullScreen ? 'max-w-7xl mx-auto' : ''}`}>
+                
+                {/* Global PWA Install Prompter */}
+                {showInstallPromptBanner && (
+                  <div className="mb-6 bg-gradient-to-r from-red-600 to-rose-500 rounded-3xl p-4 text-white shadow-xl relative overflow-hidden border border-red-400/20 animate-in fade-in slide-in-from-top-4 duration-300" dir="rtl">
+                    {/* Background decorations */}
+                    <div className="absolute -top-10 -left-10 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                      <div className="flex items-center gap-3">
+                        {/* Perfect representation of the actual home screen app icon */}
+                        <div className="h-12 w-12 rounded-[14px] bg-white p-0.5 shadow-lg border border-white/20 shrink-0 flex items-center justify-center overflow-hidden">
+                          <img 
+                            src="/pwa_icon.jpg" 
+                            alt="طلبات فرشوط" 
+                            className="h-full w-full object-cover rounded-[11px]"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="text-right">
+                          <h4 className="font-black text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
+                            <span>تنزيل تطبيق طلبات فرشوط على هاتفك</span>
+                            <span className="text-[8px] bg-white/20 border border-white/30 px-1.5 py-0.5 rounded-full font-bold">تطبيق مطور PWA</span>
+                          </h4>
+                          <p className="text-[10px] text-red-100 font-bold mt-0.5 leading-relaxed">
+                            احصل على تجربة دليفري أسرع بفرشوط! ستظهر الأيقونة تلقائياً على شاشتك الرئيسية عند التنزيل وستعمل بدون استهلاك إنترنت.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          onClick={handleInstallApp}
+                          className="bg-white hover:bg-slate-50 text-red-600 font-black text-[10px] px-4 py-2 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                        >
+                          تنزيل الآن ⚡
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowInstallPromptBanner(false);
+                            sessionStorage.setItem('dismiss_install_banner', 'true');
+                          }}
+                          className="bg-red-700/40 hover:bg-red-700/60 text-white font-extrabold text-[10px] px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                        >
+                          تخطي مؤقتاً
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
         
         {/* ROLE 1: CUSTOMER VIEW */}
         {currentRole === 'customer' && (
@@ -1202,30 +2290,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* If there is a search query and product search results found */}
-                {searchQuery.trim() && matchingItems.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-1">
-                      <TrendingUp className="h-5 w-5 text-red-500" />
-                      <h3 className="font-extrabold text-lg text-slate-800">المنتجات المطابقة للبحث ({matchingItems.length})</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {matchingItems.map((item) => {
-                        const cartItem = cart.find((c) => c.item.id === item.id);
-                        return (
-                          <ItemCard
-                            key={item.id}
-                            item={item}
-                            cartQuantity={cartItem?.quantity || 0}
-                            onAdd={() => handleAddToCart(item)}
-                            onRemove={() => handleRemoveFromCart(item)}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 {/* Shops Listings Header */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -1242,16 +2306,18 @@ export default function App() {
 
                   {filteredShops.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                      <p className="text-slate-400 font-bold mb-2">عذراً، لم نجد أي متجر يطابق هذا البحث</p>
-                      <p className="text-xs text-slate-400">جرب البحث بكلمات أخرى أو تصفح الأقسام الرئيسية</p>
+                      <p className="text-slate-400 font-bold mb-2">عذراً، لم نجد أي متجر يطابق هذا البحث والتصفية</p>
+                      <p className="text-xs text-slate-400">جرب تغيير الفلتر أو البحث بكلمات أخرى</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFullScreen ? 'md:grid-cols-3 lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
                       {filteredShops.map((shop) => (
                         <ShopCard
                           key={shop.id}
                           shop={shop}
                           onClick={() => setSelectedShopId(shop.id)}
+                          isFavorite={favorites.includes(shop.id)}
+                          onToggleFavorite={() => handleToggleFavorite(shop.id)}
                         />
                       ))}
                     </div>
@@ -1362,6 +2428,11 @@ export default function App() {
               onClearCart={handleClearCart}
               onCheckout={handleCheckout}
               deliveryFee={currentCartDeliveryFee}
+              initialAddress={customerAccount?.address || ''}
+              initialPhone={customerAccount?.phone || ''}
+              initialWalletNumber={customerAccount?.mobileWalletNumber || ''}
+              initialWalletProvider={customerAccount?.mobileWalletProvider || 'vodafone'}
+              onSaveDefaultAddressAndPhone={handleSaveDefaultAddressAndPhone}
             />
           </div>
         )}
@@ -1420,6 +2491,73 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Mobile Wallet Settings & Quick Payment Section */}
+              <div className="bg-gradient-to-l from-slate-900 via-slate-850 to-slate-900 rounded-[28px] p-5 text-white shadow-xl relative overflow-hidden border border-white/10">
+                {/* Background decorative patterns */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                      <Wallet className="h-4 w-4 text-red-400" />
+                    </div>
+                    <span className="text-xs font-black tracking-wide text-slate-200">محفظة الهاتف الذكي الافتراضية 📱</span>
+                  </div>
+                  <span className="text-[9px] bg-red-500/20 border border-red-500/30 text-red-300 px-2 py-0.5 rounded-full font-black">كاش / إنستاباي</span>
+                </div>
+
+                <div className="space-y-3 mt-1 text-right">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] text-slate-400 font-bold mb-1">نوع المحفظة</label>
+                      <select
+                        value={customerAccount?.mobileWalletProvider || 'vodafone'}
+                        onChange={(e) => {
+                          const updated = { 
+                            ...(customerAccount || { name: 'عميل طلبات فرشوط', phone: '', address: '' }), 
+                            mobileWalletProvider: e.target.value 
+                          };
+                          setCustomerAccount(updated);
+                          localStorage.setItem('customer_account_data', JSON.stringify(updated));
+                          showToast('تم تحديث نوع محفظة كاش! 💾', 'info');
+                        }}
+                        className="w-full rounded-xl border border-white/10 px-2.5 py-1.5 text-xs text-white bg-white/5 focus:outline-none focus:border-red-400 font-bold cursor-pointer"
+                      >
+                        <option value="vodafone" className="text-slate-900">فودافون كاش 🔴</option>
+                        <option value="orange" className="text-slate-900">أورنج كاش 🟠</option>
+                        <option value="etisalat" className="text-slate-900">اتصالات كاش 🟢</option>
+                        <option value="we" className="text-slate-900">وي كاش 🟣</option>
+                        <option value="instapay" className="text-slate-900">إنستاباي (InstaPay) ⚡</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] text-slate-400 font-bold mb-1">رقم المحفظة الافتراضي</label>
+                      <input
+                        type="text"
+                        value={customerAccount?.mobileWalletNumber || ''}
+                        onChange={(e) => {
+                          const updated = { 
+                            ...(customerAccount || { name: 'عميل طلبات فرشوط', phone: '', address: '' }), 
+                            mobileWalletNumber: e.target.value 
+                          };
+                          setCustomerAccount(updated);
+                          localStorage.setItem('customer_account_data', JSON.stringify(updated));
+                        }}
+                        placeholder="مثال: 010XXXXXXXX"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white outline-none focus:border-red-400 text-left"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subtitle / Note */}
+                  <p className="text-[10px] text-slate-300 font-bold mt-2 leading-relaxed border-t border-white/5 pt-3">
+                    💡 سيتم استخدام هذا الرقم ونوع المحفظة وتعبئتهما تلقائياً كخيار الدفع الافتراضي في حقيبة التسوق عند الدفع عبر محفظة الهاتف الذكي، لتسريع عملية الطلب بفرشوط!
+                  </p>
+                </div>
+              </div>
+
               {/* Editable Profile Information */}
               <div className="space-y-4">
                 <h4 className="font-extrabold text-[10px] text-slate-400">معلومات الحساب والتوصيل</h4>
@@ -1475,6 +2613,40 @@ export default function App() {
                 <h4 className="font-extrabold text-[10px] text-slate-400 pb-1">إعدادات التطبيق الإضافية</h4>
                 
                 <div className="space-y-1.5">
+                  <button 
+                    onClick={() => setShowPCInstallModal(true)}
+                    className="w-full text-right hover:bg-red-50/50 hover:text-red-700 border border-dashed border-red-200/60 bg-red-50/10 px-3 py-2.5 rounded-xl text-xs font-black text-red-600 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🖥️</span>
+                      <span>إنشاء وتنزيل ملف تثبيت للكمبيوتر (PC / Mac)</span>
+                    </span>
+                    <span className="text-[10px] bg-red-500 text-white px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 animate-pulse">
+                      <span>تثبيت الآن</span>
+                    </span>
+                  </button>
+
+                  <button 
+                    onClick={handleRequestNotificationPermission}
+                    className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🔔</span>
+                      <span>إشعارات الهاتف المباشرة بحالات الطلبات</span>
+                    </span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1 ${
+                      notificationPermission === 'granted' 
+                        ? 'bg-emerald-100 text-emerald-700' 
+                        : notificationPermission === 'denied'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-red-500 text-white animate-pulse'
+                    }`}>
+                      {notificationPermission === 'granted' && <span>نشطة ومفعّلة</span>}
+                      {notificationPermission === 'denied' && <span>مرفوضة بالمتصفح</span>}
+                      {notificationPermission === 'default' && <span>تفعيل الآن</span>}
+                    </span>
+                  </button>
+
                   <button className="w-full text-right hover:bg-slate-50 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors">
                     <span className="flex items-center gap-2">
                       <span className="text-sm">🎫</span>
@@ -1495,20 +2667,6 @@ export default function App() {
                     <span className="text-[10px] bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1">
                       {checkingForUpdates && <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />}
                       <span>v1.0.0</span>
-                    </span>
-                  </button>
-
-                  <button 
-                    onClick={() => setShowAppInstalledModal(true)}
-                    className="w-full text-right hover:bg-red-50/50 hover:text-red-700 border border-dashed border-red-200/60 bg-red-50/10 px-3 py-2.5 rounded-xl text-xs font-black text-red-600 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm">📱</span>
-                      <span>شكل أيقونة التطبيق مثبت على الهاتف</span>
-                    </span>
-                    <span className="text-[10px] bg-red-500 text-white px-2.5 py-0.5 rounded-full font-extrabold flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                      <span>شاهد الآن</span>
                     </span>
                   </button>
 
@@ -1606,7 +2764,7 @@ export default function App() {
 
               {/* Fixed Customer Bottom Navigation Bar inside mockup screen */}
               {currentRole === 'customer' && (
-                <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 h-16 flex items-center justify-around px-2 z-40 shadow-lg shrink-0">
+                <div className="fixed bottom-0 left-0 right-0 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:max-w-md md:rounded-2xl md:border md:border-slate-200/80 bg-white/95 backdrop-blur-md border-t border-slate-100 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.05),0_10px_30px_rgba(0,0,0,0.08)]">
                   <button
                     onClick={() => {
                       setSelectedShopId(null);
@@ -1661,6 +2819,5 @@ export default function App() {
 
         </div>
       </div>
-    </div>
   );
 }

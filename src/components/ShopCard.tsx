@@ -1,13 +1,16 @@
-import { Star, Clock, MapPin, Truck } from 'lucide-react';
+import React from 'react';
+import { Star, Clock, MapPin, Truck, Heart } from 'lucide-react';
 import { Shop } from '../types';
 
 interface ShopCardProps {
   key?: string | number;
   shop: Shop;
   onClick: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
-export default function ShopCard({ shop, onClick }: ShopCardProps) {
+export default function ShopCard({ shop, onClick, isFavorite = false, onToggleFavorite }: ShopCardProps) {
   return (
     <div
       id={`shop-card-${shop.id}`}
@@ -19,6 +22,24 @@ export default function ShopCard({ shop, onClick }: ShopCardProps) {
         <span className="absolute top-3 right-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
           مميز 🔥
         </span>
+      )}
+
+      {/* Favorite Heart Button */}
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(e);
+          }}
+          className="absolute top-3 left-3 z-10 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:scale-110 active:scale-95 transition-all text-slate-400 hover:text-red-500 cursor-pointer"
+          title={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+        >
+          <Heart
+            className={`h-4 w-4 transition-colors ${
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-400'
+            }`}
+          />
+        </button>
       )}
 
       {/* Image container with scale hover effect */}

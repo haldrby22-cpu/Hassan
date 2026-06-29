@@ -76,3 +76,16 @@ export interface PromoCode {
   minSubtotal: number;
   description: string;
 }
+
+export interface InAppNotification {
+  id: string;
+  orderId: string;
+  title: string;
+  message: string;
+  type: 'status_change' | 'system' | 'wallet';
+  status?: OrderStatus;
+  read: boolean;
+  date: string;
+  shopName?: string;
+}
+

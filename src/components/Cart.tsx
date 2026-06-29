@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Trash2, Plus, Minus, CreditCard, Landmark, Truck, ShieldCheck, Ticket, Calendar, Clock } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, CreditCard, Landmark, Truck, ShieldCheck, Ticket, Calendar, Clock, Wallet } from 'lucide-react';
 import { CartItem, PromoCode } from '../types';
 import { PROMO_CODES } from '../data';
 
@@ -19,20 +19,67 @@ interface CartProps {
     scheduledTime?: string
   ) => void;
   deliveryFee: number;
+  initialAddress?: string;
+  initialPhone?: string;
+  initialWalletNumber?: string;
+  initialWalletProvider?: string;
+  onSaveDefaultAddressAndPhone?: (address: string, phone: string, walletNumber?: string, walletProvider?: string) => void;
 }
 
-export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheckout, deliveryFee }: CartProps) {
+export default function Cart({
+  cartItems,
+  onUpdateQuantity,
+  onClearCart,
+  onCheckout,
+  deliveryFee,
+  initialAddress = '',
+  initialPhone = '',
+  initialWalletNumber = '',
+  initialWalletProvider = 'vodafone',
+  onSaveDefaultAddressAndPhone
+}: CartProps) {
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
 
   // Form Fields
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState(initialAddress);
+  const [phone, setPhone] = useState(initialPhone);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [walletNumber, setWalletNumber] = useState(initialWalletNumber);
+  const [walletProvider, setWalletProvider] = useState(initialWalletProvider);
   const [notes, setNotes] = useState('');
-  const [formErrors, setFormErrors] = useState<{ address?: string; phone?: string }>({});
+  const [formErrors, setFormErrors] = useState<{ address?: string; phone?: string; wallet?: string }>({});
+  const [saveAsDefault, setSaveAsDefault] = useState(true);
+  const [isDataSavedFeedback, setIsDataSavedFeedback] = useState(false);
+
+  // Sync state if props change (e.g., logging in or auto-filling)
+  React.useEffect(() => {
+    if (initialAddress) {
+      setAddress(initialAddress);
+    }
+  }, [initialAddress]);
+
+  React.useEffect(() => {
+    if (initialPhone) {
+      setPhone(initialPhone);
+    }
+  }, [initialPhone]);
+
+  React.useEffect(() => {
+    if (initialWalletNumber) {
+      setWalletNumber(initialWalletNumber);
+    } else if (initialPhone && !walletNumber) {
+      setWalletNumber(initialPhone);
+    }
+  }, [initialWalletNumber, initialPhone]);
+
+  React.useEffect(() => {
+    if (initialWalletProvider) {
+      setWalletProvider(initialWalletProvider);
+    }
+  }, [initialWalletProvider]);
 
   // Scheduling state
   const [isScheduled, setIsScheduled] = useState(false);
@@ -123,7 +170,7 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
   // Form Validation and Submit
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: { address?: string; phone?: string } = {};
+    const errors: { address?: string; phone?: string; wallet?: string } = {};
 
     if (!address.trim()) {
       errors.address = 'الرجاء إدخال عنوان التوصيل بالتفصيل بجمهورية مصر العربية';
@@ -134,6 +181,14 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
       errors.phone = 'رقم الهاتف المصري يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015 ويتكون من 11 رقماً';
     }
 
+    if (paymentMethod === 'wallet') {
+      if (!walletNumber.trim()) {
+        errors.wallet = 'الرجاء إدخال رقم محفظة الهاتف للتسوية الإلكترونية';
+      } else if (!/^(010|011|012|015)\d{8}$/.test(walletNumber.trim())) {
+        errors.wallet = 'رقم محفظة الهاتف غير صحيح! يجب أن يكون رقم هاتف مصري من 11 رقماً يبدأ بـ 010 أو 011 أو 012 أو 015';
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       // scroll to errors
@@ -141,10 +196,18 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
     }
 
     setFormErrors({});
+    if (saveAsDefault && onSaveDefaultAddressAndPhone) {
+      onSaveDefaultAddressAndPhone(address, phone, walletNumber, walletProvider);
+    }
+    
+    const finalPaymentMethod = paymentMethod === 'wallet' 
+      ? `wallet:${walletProvider}:${walletNumber}` 
+      : paymentMethod;
+
     onCheckout(
       address,
       phone,
-      paymentMethod,
+      finalPaymentMethod,
       notes,
       appliedPromo || undefined,
       discountAmount,
@@ -339,6 +402,58 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
               />
             </div>
 
+            {/* Save address & phone settings */}
+            <div className="pt-2 border-t border-slate-50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 rounded-2xl p-3 border border-slate-100/50">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefault}
+                    onChange={(e) => setSaveAsDefault(e.target.checked)}
+                    className="h-4.5 w-4.5 rounded text-red-500 focus:ring-red-400 border-slate-300 accent-red-500 cursor-pointer"
+                  />
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-700">تحديث العنوان ورقم الهاتف والمحفظة الافتراضية</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">سيتم حفظ البيانات تلقائياً بملفك الشخصي عند إتمام الطلب</p>
+                  </div>
+                </label>
+                
+                {onSaveDefaultAddressAndPhone && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!address.trim()) {
+                        setFormErrors(prev => ({ ...prev, address: 'يرجى كتابة العنوان أولاً لحفظه' }));
+                        return;
+                      }
+                      if (!phone.trim()) {
+                        setFormErrors(prev => ({ ...prev, phone: 'يرجى كتابة رقم الهاتف أولاً لحفظه' }));
+                        return;
+                      }
+                      if (!/^(010|011|012|015)\d{8}$/.test(phone.trim())) {
+                        setFormErrors(prev => ({ ...prev, phone: 'رقم هاتف غير صحيح' }));
+                        return;
+                      }
+                      if (walletNumber && !/^(010|011|012|015)\d{8}$/.test(walletNumber.trim())) {
+                        setFormErrors(prev => ({ ...prev, wallet: 'رقم محفظة هاتف غير صحيح' }));
+                        return;
+                      }
+                      onSaveDefaultAddressAndPhone(address, phone, walletNumber, walletProvider);
+                      setIsDataSavedFeedback(true);
+                      setTimeout(() => setIsDataSavedFeedback(false), 3000);
+                    }}
+                    className={`text-[10px] font-black px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                      isDataSavedFeedback 
+                        ? 'bg-emerald-500 text-white border border-transparent' 
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80 shadow-sm active:scale-95'
+                    }`}
+                  >
+                    {isDataSavedFeedback ? '✓ تم الحفظ!' : '💾 حفظ الآن'}
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Scheduling option */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">وقت التوصيل</label>
@@ -419,46 +534,112 @@ export default function Cart({ cartItems, onUpdateQuantity, onClearCart, onCheck
             {/* Payment Method Selector */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">طريقة الدفع</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('cash')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
                     paymentMethod === 'cash'
                       ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
                   <Landmark className="h-5 w-5 mb-1.5 shrink-0" />
-                  <span className="text-xs">نقداً عند الاستلام</span>
+                  <span className="text-[11px]">نقداً عند الاستلام</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('wallet')}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    paymentMethod === 'wallet'
+                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <Wallet className="h-5 w-5 mb-1.5 shrink-0" />
+                  <span className="text-[11px]">محفظة الهاتف</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('card')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
                     paymentMethod === 'card'
                       ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
                   <CreditCard className="h-5 w-5 mb-1.5 shrink-0" />
-                  <span className="text-xs">بطاقة بنكية / فوري</span>
+                  <span className="text-[11px]">بطاقة بنكية / فوري</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('applepay')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
                     paymentMethod === 'applepay'
                       ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
-                  <span className="text-base font-extrabold tracking-tight mb-1 shrink-0"> Pay</span>
-                  <span className="text-xs">أبل باي</span>
+                  <span className="text-sm font-extrabold tracking-tight mb-1 shrink-0"> Pay</span>
+                  <span className="text-[11px]">أبل باي</span>
                 </button>
               </div>
+
+              {paymentMethod === 'wallet' && (
+                <div className="mt-4 p-4 rounded-2xl border border-red-100 bg-red-50/10 space-y-4 text-right">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">📱</span>
+                    <div>
+                      <h5 className="text-xs font-black text-slate-900">بيانات الدفع عبر محفظة الهاتف (كاش / إنستاباي)</h5>
+                      <p className="text-[10px] text-slate-500 mt-0.5 font-bold">
+                        قم بالتحويل الإلكتروني السريع واستلم طلبك بدون لمس ونقود ورقية
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-1">نوع محفظة الهاتف</label>
+                      <select
+                        value={walletProvider}
+                        onChange={(e) => setWalletProvider(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:border-red-400 font-bold"
+                      >
+                        <option value="vodafone">فودافون كاش 🔴</option>
+                        <option value="orange">أورنج كاش 🟠</option>
+                        <option value="etisalat">اتصالات كاش 🟢</option>
+                        <option value="we">وي كاش 🟣</option>
+                        <option value="instapay">إنستاباي (InstaPay) ⚡</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-1">رقم المحفظة / عنوان الدفع</label>
+                      <input
+                        type="text"
+                        value={walletNumber}
+                        onChange={(e) => setWalletNumber(e.target.value)}
+                        placeholder="مثال: 010XXXXXXXX"
+                        className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-400 text-left ${
+                          formErrors.wallet ? 'border-red-400' : 'border-slate-200'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-red-100/30 pt-3 text-[10px] text-slate-500 leading-relaxed font-bold space-y-1">
+                    <p className="text-red-600">💡 آلية عمل الخدمة بفرشوط:</p>
+                    <p>١. فور إرسال الطلب، سيتواصل معك الطيار لتأكيد استلام التحويل بقيمة <span className="text-red-600 text-xs font-extrabold">{grandTotal} ج.م</span>.</p>
+                    <p>٢. يمكنك إرسال التحويل مباشرة إلى رقم محفظة الطيار أو المتجر المخصصة لتجنب تداول الأوراق النقدية تماماً.</p>
+                  </div>
+                </div>
+              )}
+              {formErrors.wallet && (
+                <p className="text-xs text-red-500 font-semibold mt-2 text-right">{formErrors.wallet}</p>
+              )}
             </div>
           </div>
         </div>
