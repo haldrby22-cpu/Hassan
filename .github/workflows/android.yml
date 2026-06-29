@@ -21,32 +21,24 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install & Build 📦
+      - name: Build Web Assets 🌐
         run: |
           npm install
           npm run build
-          # التأكد من وجود مجلد dist
-          ls -F
-      
+
       - name: Setup Capacitor & Android 📱
         run: |
-          # تأكد من تثبيت الـ CLI عالمياً للعمل في الـ Workflow
           npm install -g @capacitor/cli
-          # إضافة منصة الأندرويد إذا لم تكن موجودة
           npx cap add android || echo "Android exists"
-          # المزامنة
           npx cap sync android
 
       - name: Build Android APK 🛠️
         run: |
           cd android
-          # تنظيف وبناء نظيف
-          rm -rf gradle/wrapper/
-          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
-          unzip -q gradle-8.10.2-bin.zip
-          export PATH=$PWD/gradle-8.10.2/bin:$PATH
-          
-          gradle clean assembleRelease --no-daemon
+          # إعطاء صلاحية التنفيذ للملفات
+          chmod +x gradlew
+          # البناء باستخدام الملف الأصلي للمشروع
+          ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           KEYSTORE_PASSWORD: "talabat123"
           KEY_PASSWORD: "talabat123"
