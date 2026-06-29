@@ -89,7 +89,7 @@ export default function RegisterModal({ onClose, onRegister, pendingAddress = ''
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="مثال: محمد أحمد الدربي"
+                placeholder="مثال: محمد أحمد محمود"
                 className={`w-full bg-slate-50 border rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-red-500 ${formErrors.name ? 'border-red-400 bg-red-50/5' : 'border-slate-100'}`}
               />
             </div>
@@ -130,7 +130,7 @@ export default function RegisterModal({ onClose, onRegister, pendingAddress = ''
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="شارع الجمهورية - بجوار مسجد الرحمن - الطابق الثاني"
+                placeholder="مثال: شارع الفارابي - بجوار مسجد الرحمن - الطابق الثاني"
                 className={`w-full bg-slate-50 border rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-red-500 ${formErrors.address ? 'border-red-400 bg-red-50/5' : 'border-slate-100'}`}
               />
             </div>

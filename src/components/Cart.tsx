@@ -534,112 +534,19 @@ export default function Cart({
             {/* Payment Method Selector */}
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-2">طريقة الدفع</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('cash')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === 'cash'
-                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <Landmark className="h-5 w-5 mb-1.5 shrink-0" />
-                  <span className="text-[11px]">نقداً عند الاستلام</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('wallet')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === 'wallet'
-                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <Wallet className="h-5 w-5 mb-1.5 shrink-0" />
-                  <span className="text-[11px]">محفظة الهاتف</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === 'card'
-                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <CreditCard className="h-5 w-5 mb-1.5 shrink-0" />
-                  <span className="text-[11px]">بطاقة بنكية / فوري</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('applepay')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === 'applepay'
-                      ? 'border-red-500 bg-red-50/50 text-red-600 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <span className="text-sm font-extrabold tracking-tight mb-1 shrink-0"> Pay</span>
-                  <span className="text-[11px]">أبل باي</span>
-                </button>
-              </div>
-
-              {paymentMethod === 'wallet' && (
-                <div className="mt-4 p-4 rounded-2xl border border-red-100 bg-red-50/10 space-y-4 text-right">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">📱</span>
-                    <div>
-                      <h5 className="text-xs font-black text-slate-900">بيانات الدفع عبر محفظة الهاتف (كاش / إنستاباي)</h5>
-                      <p className="text-[10px] text-slate-500 mt-0.5 font-bold">
-                        قم بالتحويل الإلكتروني السريع واستلم طلبك بدون لمس ونقود ورقية
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-500 mb-1">نوع محفظة الهاتف</label>
-                      <select
-                        value={walletProvider}
-                        onChange={(e) => setWalletProvider(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:border-red-400 font-bold"
-                      >
-                        <option value="vodafone">فودافون كاش 🔴</option>
-                        <option value="orange">أورنج كاش 🟠</option>
-                        <option value="etisalat">اتصالات كاش 🟢</option>
-                        <option value="we">وي كاش 🟣</option>
-                        <option value="instapay">إنستاباي (InstaPay) ⚡</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-500 mb-1">رقم المحفظة / عنوان الدفع</label>
-                      <input
-                        type="text"
-                        value={walletNumber}
-                        onChange={(e) => setWalletNumber(e.target.value)}
-                        placeholder="مثال: 010XXXXXXXX"
-                        className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-400 text-left ${
-                          formErrors.wallet ? 'border-red-400' : 'border-slate-200'
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="border-t border-red-100/30 pt-3 text-[10px] text-slate-500 leading-relaxed font-bold space-y-1">
-                    <p className="text-red-600">💡 آلية عمل الخدمة بفرشوط:</p>
-                    <p>١. فور إرسال الطلب، سيتواصل معك الطيار لتأكيد استلام التحويل بقيمة <span className="text-red-600 text-xs font-extrabold">{grandTotal} ج.م</span>.</p>
-                    <p>٢. يمكنك إرسال التحويل مباشرة إلى رقم محفظة الطيار أو المتجر المخصصة لتجنب تداول الأوراق النقدية تماماً.</p>
+              <div className="bg-red-50/20 border border-red-100 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="h-9 w-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg">💵</span>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-slate-800">الدفع نقداً عند الاستلام (COD)</h4>
+                    <p className="text-[10px] text-slate-500 font-bold mt-0.5">ادفع للطيار عند وصول طلبك لباب منزلك بفرشوط</p>
                   </div>
                 </div>
-              )}
-              {formErrors.wallet && (
-                <p className="text-xs text-red-500 font-semibold mt-2 text-right">{formErrors.wallet}</p>
-              )}
+                <div className="border-t border-red-100/30 pt-2.5 text-[10px] text-slate-500 leading-relaxed font-bold">
+                  <p className="text-red-600">💡 ملاحظة الأمان والسرعة:</p>
+                  <p>تسهيلاً لعملائنا في مركز فرشوط وقراها، نعتمد حالياً الدفع النقدي عند الاستلام لضمان معاينة وجودة الطلب قبل الدفع.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -47,6 +47,7 @@ import MerchantPanel from './components/MerchantPanel';
 import DriverPanel from './components/DriverPanel';
 import RegisterModal from './components/RegisterModal';
 import SupportModal from './components/SupportModal';
+import WhatsAppLogin from './components/WhatsAppLogin';
 
 export default function App() {
   // Authentication & Portal selection state
@@ -1277,7 +1278,7 @@ export default function App() {
                           type="text"
                           value={cardName}
                           onChange={(e) => setCardName(e.target.value)}
-                          placeholder="مثال: حسن الدربي"
+                          placeholder="مثال: أحمد محمود علي"
                           className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-red-500 text-right"
                         />
                       </div>
@@ -1934,21 +1935,31 @@ export default function App() {
                     className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-2xl text-[10px] font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <span>☎️</span>
-                    <span>الاتصال المباشر بالدعم والمساعدة (حسن الدربي)</span>
+                    <span>الاتصال المباشر بالدعم والمساعدة (إدارة طلبات فرشوط)</span>
                   </button>
                 </div>
               </div>
 
               <div className="pt-6 text-center space-y-1 pb-4">
                 <span className="text-[9px] text-slate-400 block font-bold">تطبيق طلبات فرشوط المطور © 2026</span>
-                <span className="text-[8px] text-slate-300 block font-bold">تصميم وبرمجة حسن الدربي 🇪🇬</span>
+                <span className="text-[8px] text-slate-300 block font-bold">تصميم وبرمجة مهندسي طلبات فرشوط 🇪🇬</span>
               </div>
             </div>
           ) : (
             /* Logged-In Portal Dashboard */
             <>
-              {/* Premium Unified Responsive Header for PC and Mobile */}
-              <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] shrink-0">
+              {currentRole === 'customer' && !customerAccount ? (
+                <WhatsAppLogin
+                  onLoginSuccess={(account) => {
+                    setCustomerAccount(account);
+                    localStorage.setItem('customer_account_data', JSON.stringify(account));
+                    showToast('تم تفعيل حسابك بنجاح عبر الواتساب وتسجيل الدخول! 🎉', 'success');
+                  }}
+                />
+              ) : (
+                <>
+                  {/* Premium Unified Responsive Header for PC and Mobile */}
+                  <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] shrink-0">
                 <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => { setSelectedShopId(null); setActiveTab('explore'); }}>
                   <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center shadow-md shadow-red-500/10">
                     <span className="text-lg">🛵</span>
@@ -2139,55 +2150,6 @@ export default function App() {
 
               {/* Main Container */}
               <main className={`flex-grow w-full p-4 pb-24 overflow-y-auto bg-slate-50 ${isFullScreen ? 'max-w-7xl mx-auto' : ''}`}>
-                
-                {/* Global PWA Install Prompter */}
-                {showInstallPromptBanner && (
-                  <div className="mb-6 bg-gradient-to-r from-red-600 to-rose-500 rounded-3xl p-4 text-white shadow-xl relative overflow-hidden border border-red-400/20 animate-in fade-in slide-in-from-top-4 duration-300" dir="rtl">
-                    {/* Background decorations */}
-                    <div className="absolute -top-10 -left-10 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                      <div className="flex items-center gap-3">
-                        {/* Perfect representation of the actual home screen app icon */}
-                        <div className="h-12 w-12 rounded-[14px] bg-white p-0.5 shadow-lg border border-white/20 shrink-0 flex items-center justify-center overflow-hidden">
-                          <img 
-                            src="/pwa_icon.jpg" 
-                            alt="طلبات فرشوط" 
-                            className="h-full w-full object-cover rounded-[11px]"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                        <div className="text-right">
-                          <h4 className="font-black text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
-                            <span>تنزيل تطبيق طلبات فرشوط على هاتفك</span>
-                            <span className="text-[8px] bg-white/20 border border-white/30 px-1.5 py-0.5 rounded-full font-bold">تطبيق مطور PWA</span>
-                          </h4>
-                          <p className="text-[10px] text-red-100 font-bold mt-0.5 leading-relaxed">
-                            احصل على تجربة دليفري أسرع بفرشوط! ستظهر الأيقونة تلقائياً على شاشتك الرئيسية عند التنزيل وستعمل بدون استهلاك إنترنت.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end sm:self-center">
-                        <button
-                          onClick={handleInstallApp}
-                          className="bg-white hover:bg-slate-50 text-red-600 font-black text-[10px] px-4 py-2 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
-                        >
-                          تنزيل الآن ⚡
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowInstallPromptBanner(false);
-                            sessionStorage.setItem('dismiss_install_banner', 'true');
-                          }}
-                          className="bg-red-700/40 hover:bg-red-700/60 text-white font-extrabold text-[10px] px-3 py-2 rounded-xl transition-colors cursor-pointer"
-                        >
-                          تخطي مؤقتاً
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
         
         {/* ROLE 1: CUSTOMER VIEW */}
         {currentRole === 'customer' && (
@@ -2491,6 +2453,30 @@ export default function App() {
                 </div>
               </div>
 
+              {/* WhatsApp Verification Status Card */}
+              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-3">
+                  <span className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shrink-0">💬</span>
+                  <div className="text-right">
+                    <h4 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                      <span>تم تفعيل الحساب وتوثيقه بالواتساب</span>
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-bold mt-0.5">رقم التفعيل المسجل: {customerAccount?.phone || 'غير مسجل'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setCustomerAccount(null);
+                    localStorage.removeItem('customer_account_data');
+                    showToast('يرجى تسجيل الدخول أو تأكيد حسابك الجديد بالواتساب 💬', 'info');
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] px-3.5 py-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer self-stretch sm:self-auto"
+                >
+                  <span>تسجيل دخول / حساب جديد</span>
+                </button>
+              </div>
+
               {/* Mobile Wallet Settings & Quick Payment Section */}
               <div className="bg-gradient-to-l from-slate-900 via-slate-850 to-slate-900 rounded-[28px] p-5 text-white shadow-xl relative overflow-hidden border border-white/10">
                 {/* Background decorative patterns */}
@@ -2567,7 +2553,8 @@ export default function App() {
                     <label className="text-[10px] font-bold text-slate-400">الاسم الكامل</label>
                     <input
                       type="text"
-                      value={customerAccount?.name || "حسن الدربي"}
+                      value={customerAccount?.name || ""}
+                      placeholder="لم يتم إدخال الاسم"
                       onChange={(e) => {
                         const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), name: e.target.value };
                         setCustomerAccount(updated);
@@ -2581,7 +2568,8 @@ export default function App() {
                     <label className="text-[10px] font-bold text-slate-400">رقم الهاتف للاتصال والتحقق</label>
                     <input
                       type="text"
-                      value={customerAccount?.phone || "+20 1023456789"}
+                      value={customerAccount?.phone || ""}
+                      placeholder="01XXXXXXXXX"
                       onChange={(e) => {
                         const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), phone: e.target.value };
                         setCustomerAccount(updated);
@@ -2595,7 +2583,8 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-1">
                     <label className="text-[10px] font-bold text-slate-400">عنوان التوصيل الافتراضي بفرشوط</label>
                     <textarea
-                      value={customerAccount?.address || "قنا، مركز فرشوط - الشارع الجديد بجوار مسجد الرحمن"}
+                      value={customerAccount?.address || ""}
+                      placeholder="مثال: قنا، مركز فرشوط، شارع الفارابي"
                       onChange={(e) => {
                         const updated = { ...(customerAccount || { name: '', phone: '', address: '' }), address: e.target.value };
                         setCustomerAccount(updated);
@@ -2763,7 +2752,7 @@ export default function App() {
               </main>
 
               {/* Fixed Customer Bottom Navigation Bar inside mockup screen */}
-              {currentRole === 'customer' && (
+              {currentRole === 'customer' && customerAccount && (
                 <div className="fixed bottom-0 left-0 right-0 md:bottom-4 md:left-1/2 md:-translate-x-1/2 md:max-w-md md:rounded-2xl md:border md:border-slate-200/80 bg-white/95 backdrop-blur-md border-t border-slate-100 h-16 flex items-center justify-around px-2 z-40 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.05),0_10px_30px_rgba(0,0,0,0.08)]">
                   <button
                     onClick={() => {
@@ -2816,6 +2805,8 @@ export default function App() {
               )}
             </>
           )}
+        </>
+      )}
 
         </div>
       </div>

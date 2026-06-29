@@ -1,25 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // 1. إدارة ملفات تعريف المستخدمين
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // 2. إدارة الطلبات (Orders)
-    match /orders/{orderId} {
-      // يسمح للمستخدم بقراءة طلباته الخاصة فقط
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      // يسمح للمستخدم بإنشاء طلب جديد
-      allow create: if request.auth != null;
-    }
-
-    // 3. عرض المنتجات أو الخدمات (متاحة للجميع للقراءة)
-    match /services/{serviceId} {
-      allow read: if true; 
-      // التعديل متاح فقط للمشرفين (يفترض وجود حقل isAdmin في وثيقة المستخدم)
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    match /customers/{phone} {
+      allow read, write: if true;
     }
   }
 }

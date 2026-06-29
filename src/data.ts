@@ -393,6 +393,28 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ['ساخن', 'قهوة'],
     popular: true,
   },
+  {
+    id: 'item-cc-3',
+    shopId: 'cafe-1',
+    name: 'كراميل فرابي كريمي (Caramel Frappé)',
+    description: 'مزيج فاخر من القهوة الغنية والحليب ممزوج بالثلج والكراميل اللذيذ، مغطى بطبقة غنية من الكريمة المخفوقة وسيرب كراميل دافئ.',
+    price: 85,
+    image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=400&q=80',
+    rating: 4.9,
+    tags: ['بارد', 'فرابي', 'الأكثر مبيعاً'],
+    popular: true,
+  },
+  {
+    id: 'item-cc-4',
+    shopId: 'cafe-1',
+    name: 'أوريو شوكولاتة فرابي (Oreo Chocolate Frappé)',
+    description: 'مزيج رائع من حليب مثلج مع قطع بسكويت أوريو المقرمش وصوص الشوكولاتة الغنية، مغطى بالكريمة وصوص هيرشي لانتشار السعادة.',
+    price: 90,
+    image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=400&q=80',
+    rating: 4.8,
+    tags: ['بارد', 'فرابي', 'شوكولاتة'],
+    popular: true,
+  },
 
   // --- TBS ITEMS ---
   {

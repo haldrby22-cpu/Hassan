@@ -9,9 +9,9 @@ export default function SupportModal({ onClose }: SupportModalProps) {
   const supportNumbers = [
     {
       id: 'hassan',
-      name: 'أ. حسن الدربي (الدعم الرئيسي والتطوير)',
+      name: 'الإدارة العامة والدعم الفني',
       phone: '01060416808',
-      role: 'مؤسس التطبيق والمتابعة الفنية للطلبات والشكاوى المعقدة',
+      role: 'متابعة فنية وتطوير الأنظمة وحل مشاكل الطلبات والشكاوى المعقدة',
       whatsappUrl: 'https://wa.me/201060416808?text=%D8%A3%D9%87%D9%84%D8%A7%D9%8B%20%D8%A8%D9%83%20%D8%A3%D8%B3%D8%AA%D8%A7%D8%B0%20%D8%AD%D8%B3%D9%86%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D8%A5%D9%84%D9%89%20%D8%AF%D8%B9%D9%85%20%D9%81%D9%8A%20%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%20%D8%B7%D9%84%D8%A8%D8%A7%D8%AA%20%D9%81%D8%B1%D8%B4%D9%88%D8%B7',
       isPrimary: true,
     },

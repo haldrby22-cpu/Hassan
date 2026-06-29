@@ -1,0 +1,32 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer Profile",
+      "description": "User profile for registered customers at Talabat Farshout",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the customer"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the customer (11-digit Egyptian mobile number)"
+        },
+        "address": {
+          "type": "string",
+          "description": "Delivery address of the customer in Farshout"
+        }
+      },
+      "required": ["name", "phone", "address"]
+    }
+  },
+  "firestore": {
+    "/customers/{phone}": {
+      "schema": {
+        "$ref": "#/entities/Customer"
+      },
+      "description": "Collection of registered customers, keyed by their 11-digit mobile phone number"
+    }
+  }
+}
