@@ -32,12 +32,19 @@ jobs:
           npx cap add android || echo "Android exists"
           npx cap sync android
 
-      - name: Build Android APK 🛠️
+      - name: Repair & Build Android APK 🛠️
         run: |
           cd android
-          # إعطاء صلاحية التنفيذ للملفات
+          # حذف ملف الـ Wrapper التالف تماماً لإجباره على إعادة التوليد
+          rm -rf gradle/wrapper/gradle-wrapper.jar
+          
+          # إنشاء Wrapper جديد متوافق مع إصدار 8.10
+          gradle wrapper --gradle-version 8.10.2
+          
+          # التأكد من صلاحيات التنفيذ
           chmod +x gradlew
-          # البناء باستخدام الملف الأصلي للمشروع
+          
+          # تنفيذ عملية البناء
           ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           KEYSTORE_PASSWORD: "talabat123"
