@@ -31,15 +31,23 @@ jobs:
           npm install -g @capacitor/cli
           npx cap sync android
 
-      - name: Build Android APK 🛠️
+      - name: Force Clean Build via Terminal 🛠️
         run: |
+          # الانتقال لمجلد الأندرويد
           cd android
-          # الحل النهائي: حذف المجلد بالكامل وإعادة توليد ملفات الـ Wrapper
+          
+          # 1. التنظيف الجذري: حذف أي ملفات قديمة (Gradle & Wrapper)
           rm -rf gradle/
+          rm -f gradlew
+          rm -f gradlew.bat
+          
+          # 2. إنشاء نسخة جديدة ونظيفة من الـ Gradle Wrapper
           gradle wrapper --gradle-version 8.10.2
           
-          # التأكد من الصلاحيات ثم البناء
+          # 3. التأكد من صلاحيات الملفات الجديدة
           chmod +x gradlew
+          
+          # 4. البناء الفعلي
           ./gradlew assembleRelease --no-daemon
         env:
           KEYSTORE_PASSWORD: "talabat123"
