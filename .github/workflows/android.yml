@@ -1,4 +1,4 @@
-Name: Build Talabat Farshout Android App 🤖
+name: Build Talabat Farshout Android App 🤖
 
 on:
   push:
