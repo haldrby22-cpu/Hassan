@@ -42,13 +42,13 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Setup Gradle Wrapper & Build 🛠️
+      - name: Build with Gradle 8.10 🛠️
         run: |
           cd android
-          # إنشاء ملفات Gradle من الصفر لتجنب الملفات التالفة
-          gradle wrapper --gradle-version 8.14.3
+          # استخدام إصدار متوافق 8.10.2 وتجاوز مشاكل الاعتماديات
+          ./gradlew wrapper --gradle-version 8.10.2
           chmod +x gradlew
-          # مزامنة وتجهيز الأصول
+          # إعداد الأصول
           npm install @capacitor/assets
           npx @capacitor/assets generate --android
           npx cap sync android
