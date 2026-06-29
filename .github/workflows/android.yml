@@ -27,24 +27,26 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Full Clean Build Strategy 🛠️
+      - name: Force Clean Build 🛠️
         run: |
-          # 1. تحديث الاعتماديات
-          npm install
-          
-          # 2. إعداد بيئة أندرويد من الصفر وتخطي الـ Wrapper التالف
           cd android
-          # حذف أي ملفات إعدادات سابقة قد تسبب تعارض
-          rm -rf gradle/wrapper/
+          # حذف كل ما يخص الـ wrapper لتجنب أي تعارض
+          rm -rf gradle/
+          rm -f gradlew
+          rm -f gradlew.bat
           
-          # 3. تحميل Gradle 8.10.2 رسمياً وتثبيته في بيئة البناء
-          wget https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          # تثبيت Gradle 8.10.2 في بيئة البناء
+          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
           unzip -q gradle-8.10.2-bin.zip
           export GRADLE_HOME=$PWD/gradle-8.10.2
           export PATH=$GRADLE_HOME/bin:$PATH
           
-          # 4. بناء المشروع مباشرة بدون الاعتماد على gradlew
-          # نستخدم gradle مباشرة مع تحديد الـ SDK
+          # تحديث Capacitor
+          npm install @capacitor/assets
+          npx @capacitor/assets generate --android
+          npx cap sync android
+          
+          # البناء باستخدام Gradle المثبت يدوياً
           gradle clean assembleRelease --no-daemon
         env:
           KEYSTORE_PASSWORD: "talabat123"
