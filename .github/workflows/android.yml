@@ -23,7 +23,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Node Dependencies 📦
-        run: npm ci || npm install
+        run: npm install
 
       - name: Create .env file 📄
         run: |
@@ -46,11 +46,6 @@ jobs:
       - name: Setup Gradle Cache 🛠️
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Repair/Download Pristine Gradle Wrapper JAR 🛠️
-        run: |
-          mkdir -p android/gradle/wrapper
-          curl -Lo android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.14.3/gradle/wrapper/gradle-wrapper.jar
-
       - name: Generate Android Assets 🎨
         run: |
           npm install @capacitor/assets
@@ -63,15 +58,6 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build Android Release APK 📦
-        env:
-          KEYSTORE_PASSWORD: talabat123
-          KEY_PASSWORD: talabat123
         run: |
           cd android
           ./gradlew assembleRelease
-
-      - name: Upload Release APK Artifact 📤
-        uses: actions/upload-artifact@v4
-        with:
-          name: Talabat-Farshout-Release-APK
-          path: android/app/build/outputs/apk/release/*.apk
