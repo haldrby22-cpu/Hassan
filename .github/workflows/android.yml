@@ -3,7 +3,6 @@ name: Build Talabat Farshout Android App 🤖
 on:
   push:
     branches:
-      - main
       - master
   workflow_dispatch: 
 
@@ -26,29 +25,28 @@ jobs:
           npm install
           npm run build
 
-      - name: Setup Capacitor & Android 📱
+      - name: Setup Capacitor 📱
         run: |
           npm install -g @capacitor/cli
+          # إجبار Capacitor على إعادة توليد مجلد الأندرويد بملفات نظيفة
           npx cap sync android
 
-      - name: Force Clean Build via Terminal 🛠️
+      - name: Hard Reset & Build 🛠️
         run: |
-          # الانتقال لمجلد الأندرويد
           cd android
-          
-          # 1. التنظيف الجذري: حذف أي ملفات قديمة (Gradle & Wrapper)
+          # حذف أي شيء له علاقة بـ Gradle في المجلد
           rm -rf gradle/
           rm -f gradlew
-          rm -f gradlew.bat
           
-          # 2. إنشاء نسخة جديدة ونظيفة من الـ Gradle Wrapper
-          gradle wrapper --gradle-version 8.10.2
+          # تحميل Gradle 8.10.2 وتثبيته مباشرة (نتجنب 9.6.0 تماماً)
+          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q gradle-8.10.2-bin.zip
           
-          # 3. التأكد من صلاحيات الملفات الجديدة
-          chmod +x gradlew
+          # إضافة النسخة المحملة لمسار النظام
+          export PATH=$PWD/gradle-8.10.2/bin:$PATH
           
-          # 4. البناء الفعلي
-          ./gradlew assembleRelease --no-daemon
+          # تنفيذ البناء
+          gradle clean assembleRelease --no-daemon
         env:
           KEYSTORE_PASSWORD: "talabat123"
           KEY_PASSWORD: "talabat123"
