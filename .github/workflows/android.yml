@@ -46,6 +46,11 @@ jobs:
           mkdir -p android/gradle/wrapper
           curl -Lo android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.14.3/gradle/wrapper/gradle-wrapper.jar
 
+      - name: Generate Android Assets 🎨
+        run: |
+          npm install @capacitor/assets
+          npx @capacitor/assets generate --android
+
       - name: Synchronize Web Assets with Capacitor 🔄
         run: npx cap sync android
 
