@@ -27,26 +27,29 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Force Clean Build 🛠️
+      - name: Build Android APK 🛠️
         run: |
-          cd android
-          # حذف كل ما يخص الـ wrapper لتجنب أي تعارض
-          rm -rf gradle/
-          rm -f gradlew
-          rm -f gradlew.bat
+          # 1. تثبيت الاعتماديات
+          npm install
           
-          # تثبيت Gradle 8.10.2 في بيئة البناء
+          # 2. التأكد من وجود منصة أندرويد
+          # هذا السطر يحل مشكلة "android platform has not been added yet"
+          npx cap add android || echo "Android platform already exists"
+          
+          # 3. إزالة ملفات Gradle التالفة لضمان بناء نظيف
+          cd android
+          rm -rf gradle/wrapper/
+          
+          # 4. تحميل Gradle 8.10.2 وتثبيته
           wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
           unzip -q gradle-8.10.2-bin.zip
           export GRADLE_HOME=$PWD/gradle-8.10.2
           export PATH=$GRADLE_HOME/bin:$PATH
           
-          # تحديث Capacitor
-          npm install @capacitor/assets
-          npx @capacitor/assets generate --android
+          # 5. مزامنة الأصول والبناء
+          cd ..
           npx cap sync android
-          
-          # البناء باستخدام Gradle المثبت يدوياً
+          cd android
           gradle clean assembleRelease --no-daemon
         env:
           KEYSTORE_PASSWORD: "talabat123"
