@@ -35,17 +35,18 @@ jobs:
       - name: Repair & Build Android APK 🛠️
         run: |
           cd android
-          # حذف ملف الـ Wrapper التالف تماماً لإجباره على إعادة التوليد
-          rm -rf gradle/wrapper/gradle-wrapper.jar
+          # 1. إزالة أي إعدادات Gradle قديمة تسبب التعارض
+          rm -rf gradle/wrapper/
           
-          # إنشاء Wrapper جديد متوافق مع إصدار 8.10
-          gradle wrapper --gradle-version 8.10.2
+          # 2. تحميل نسخة Gradle 8.10.2 المتوافقة يدوياً
+          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q gradle-8.10.2-bin.zip
           
-          # التأكد من صلاحيات التنفيذ
-          chmod +x gradlew
+          # 3. استخدام نسخة Gradle المحملة مباشرة بدلاً من النظام
+          export PATH=$PWD/gradle-8.10.2/bin:$PATH
           
-          # تنفيذ عملية البناء
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          # 4. بناء المشروع
+          gradle clean assembleRelease --no-daemon --stacktrace
         env:
           KEYSTORE_PASSWORD: "talabat123"
           KEY_PASSWORD: "talabat123"
