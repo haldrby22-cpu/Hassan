@@ -11,23 +11,21 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
             cruncherEnabled = false
         }
     }
+    
+    // التعديل هنا: جعل التوقيع مرناً ليقرأ من بيئة البناء أو الملف المحلي
     signingConfigs {
         release {
-            def keystoreFile = file("release.keystore")
-            println "👉 [GRADLE BUILD] Keystore absolute path: ${keystoreFile.absolutePath}"
-            println "👉 [GRADLE BUILD] Keystore exists: ${keystoreFile.exists()}"
-            storeFile keystoreFile
-            storePassword "talabat123"
-            keyAlias "talabat"
-            keyPassword "talabat123"
+            storeFile file(System.getenv("KEYSTORE_PATH") ?: "release.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "talabat123"
+            keyAlias System.getenv("KEY_ALIAS") ?: "talabat"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "talabat123"
         }
     }
+    
     buildTypes {
         release {
             minifyEnabled false
@@ -36,10 +34,6 @@ android {
         }
     }
     lintOptions {
-        checkReleaseBuilds false
-        abortOnError false
-    }
-    lint {
         checkReleaseBuilds false
         abortOnError false
     }
@@ -71,5 +65,5 @@ try {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    logger.info("google-services.json not found, google-services plugin not applied.")
 }
