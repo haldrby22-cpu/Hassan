@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Smartphone, User, MapPin, CheckCircle, ArrowLeft, ShieldCheck, MessageSquare, LogIn, UserPlus } from 'lucide-react';
-import { saveCustomerToFirebase, getCustomerFromFirebase } from '../lib/firebase';
+import { saveCustomerToFirebase, getCustomerFromFirebase, sendOtpToCustomer } from '../lib/firebase';
 
 interface WhatsAppLoginProps {
   onLoginSuccess: (account: { name: string; phone: string; address: string; password?: string }) => void;
@@ -20,6 +20,7 @@ export default function WhatsAppLogin({ onLoginSuccess }: WhatsAppLoginProps) {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [timer, setTimer] = useState(60);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpSendingStatus, setOtpSendingStatus] = useState<string | null>(null);
 
   // Loaded saved accounts for quick switching / login
   const [savedAccounts, setSavedAccounts] = useState<{ name: string; phone: string; address: string }[]>([]);
@@ -106,6 +107,23 @@ export default function WhatsAppLogin({ onLoginSuccess }: WhatsAppLoginProps) {
     setStep('otp');
     setTimer(60);
     setIsOtpSent(false);
+
+    // Automatically send OTP to customer's phone
+    setOtpSendingStatus('جاري إرسال كود التحقق تلقائياً...');
+    sendOtpToCustomer(phone.trim(), code, name.trim(), address.trim())
+      .then((res) => {
+        if (res.success) {
+          if (res.simulated) {
+            setOtpSendingStatus(res.message || 'تم إرسال الكود تلقائياً (محاكاة).');
+          } else {
+            setOtpSendingStatus(`تم إرسال كود التحقق بنجاح تلقائياً.`);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to send OTP automatically:', err);
+        setOtpSendingStatus('فشل الإرسال التلقائي. يمكنك الضغط على زر الواتساب لإرسال الكود يدوياً.');
+      });
   };
 
   // Handle clicking "دخول" (Login)
@@ -466,6 +484,16 @@ export default function WhatsAppLogin({ onLoginSuccess }: WhatsAppLoginProps) {
                 <p className="text-2xl font-black text-red-400 tracking-widest">{verificationCode}</p>
               </div>
 
+              {otpSendingStatus && (
+                <div className={`text-[10px] text-center font-bold px-3 py-1.5 rounded-lg ${
+                  otpSendingStatus.includes('فشل') 
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
+                    : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                }`}>
+                  {otpSendingStatus}
+                </div>
+              )}
+
               {/* Direct WhatsApp trigger button */}
               <button
                 type="button"
@@ -500,11 +528,25 @@ export default function WhatsAppLogin({ onLoginSuccess }: WhatsAppLoginProps) {
                 ) : (
                   <button 
                     type="button" 
-                    onClick={() => {
-                      const code = Math.floor(1000 + Math.random() * 9000).toString();
-                      setVerificationCode(code);
+                    onClick={async () => {
+                      const newCode = Math.floor(1000 + Math.random() * 9000).toString();
+                      setVerificationCode(newCode);
                       setTimer(60);
                       setIsOtpSent(false);
+                      setOtpSendingStatus('جاري إرسال كود التحقق الجديد...');
+                      try {
+                        const res = await sendOtpToCustomer(phone.trim(), newCode, name.trim(), address.trim());
+                        if (res.success) {
+                          if (res.simulated) {
+                            setOtpSendingStatus(res.message || 'تم إرسال الكود تلقائياً (محاكاة).');
+                          } else {
+                            setOtpSendingStatus(`تم إرسال الكود بنجاح تلقائياً.`);
+                          }
+                        }
+                      } catch (err) {
+                        console.error('Failed to resend OTP:', err);
+                        setOtpSendingStatus('فشل الإرسال التلقائي. يرجى استخدام زر الواتساب.');
+                      }
                     }}
                     className="text-red-400 hover:underline cursor-pointer"
                   >
