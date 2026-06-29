@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Android APK & AAB 🚀
+    name: Build Android APK 🚀
     runs-on: ubuntu-latest
 
     steps:
@@ -20,9 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
 
-      - name: Install Node Dependencies 📦
+      - name: Install Dependencies 📦
         run: npm install
 
       - name: Create .env file 📄
@@ -43,21 +42,25 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Setup Gradle Cache 🛠️
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Generate Android Assets 🎨
-        run: |
-          npm install @capacitor/assets
-          npx @capacitor/assets generate --android
-
-      - name: Synchronize Web Assets with Capacitor 🔄
-        run: npx cap sync android
-
-      - name: Grant Execute Permission to Gradle Wrapper 🔑
-        run: chmod +x android/gradlew
-
-      - name: Build Android Release APK 📦
+      - name: Setup Gradle Wrapper & Build 🛠️
         run: |
           cd android
+          # إنشاء ملفات Gradle من الصفر لتجنب الملفات التالفة
+          gradle wrapper --gradle-version 8.14.3
+          chmod +x gradlew
+          # مزامنة وتجهيز الأصول
+          npm install @capacitor/assets
+          npx @capacitor/assets generate --android
+          npx cap sync android
+          # البناء
           ./gradlew assembleRelease
+        env:
+          KEYSTORE_PASSWORD: "talabat123"
+          KEY_PASSWORD: "talabat123"
+          KEY_ALIAS: "talabat"
+
+      - name: Upload APK Artifact 📤
+        uses: actions/upload-artifact@v4
+        with:
+          name: Talabat-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
