@@ -29,24 +29,15 @@ jobs:
       - name: Setup Capacitor & Android 📱
         run: |
           npm install -g @capacitor/cli
-          npx cap add android || echo "Android exists"
           npx cap sync android
 
-      - name: Repair & Build Android APK 🛠️
+      - name: Build Android APK 🛠️
         run: |
           cd android
-          # 1. إزالة أي إعدادات Gradle قديمة تسبب التعارض
-          rm -rf gradle/wrapper/
-          
-          # 2. تحميل نسخة Gradle 8.10.2 المتوافقة يدوياً
-          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
-          unzip -q gradle-8.10.2-bin.zip
-          
-          # 3. استخدام نسخة Gradle المحملة مباشرة بدلاً من النظام
-          export PATH=$PWD/gradle-8.10.2/bin:$PATH
-          
-          # 4. بناء المشروع
-          gradle clean assembleRelease --no-daemon --stacktrace
+          # إعطاء صلاحية التنفيذ
+          chmod +x gradlew
+          # بناء ملف الإصدار
+          ./gradlew assembleRelease --no-daemon
         env:
           KEYSTORE_PASSWORD: "talabat123"
           KEY_PASSWORD: "talabat123"
@@ -57,4 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Talabat-Release-APK
+          # مسار الملف الناتج في المشاريع الحديثة
           path: android/app/build/outputs/apk/release/*.apk
