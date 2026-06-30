@@ -2817,7 +2817,7 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
                   >
                     <User className="h-5 w-5" />
                     <span className="text-[10px] mt-1 font-bold">حسابي</span>
-                </button>
+               </button>
               </div>
             </div>
           </div>
@@ -2826,5 +2826,6 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
     </div>
   );
 }
+
 
      
