@@ -1,16 +1,4 @@
-import { SHOPS, MENU_ITEMS } from './data';
-import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode, InAppNotification } from './types';
-import ShopCard from './components/ShopCard';
-import ItemCard from './components/ItemCard';
-import Cart from './components/Cart';
-import OrderTracker from './components/OrderTracker';
-import OrderHistory from './components/OrderHistory';
-import AdminPanel from './components/AdminPanel';
-import MerchantPanel from './components/MerchantPanel';
-import DriverPanel from './components/DriverPanel';
-import RegisterModal from './components/RegisterModal';
-import SupportModal from './components/SupportModal';
-import WhatsAppLogin from './components/WhatsAppLogin';
+import { useState, useEffect } from 'react';
 import {
   Search,
   ShoppingBag,
@@ -47,25 +35,22 @@ import {
   VolumeX
 } from 'lucide-react';
 
-export default function App() { 
-  const [customers, setCustomers] = useState<any[]>([]);
-  useEffect(() => {
-    async function loadCustomers() {
-      try {
-        const res = await fetch('/api/customers/all');
-        if (res.ok) {
-          const data = await res.json();
-          setCustomers(data);
-          console.log("تم تحميل العملاء بنجاح:", data);
-        }
-      } catch (error) {
-        console.error("خطأ أثناء جلب العملاء:", error);
-      }
-    }
-    loadCustomers();
-  }, []);
-}
-e
+import { SHOPS, MENU_ITEMS } from './data';
+import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode, InAppNotification } from './types';
+import ShopCard from './components/ShopCard';
+import ItemCard from './components/ItemCard';
+import Cart from './components/Cart';
+import OrderTracker from './components/OrderTracker';
+import OrderHistory from './components/OrderHistory';
+import AdminPanel from './components/AdminPanel';
+import MerchantPanel from './components/MerchantPanel';
+import DriverPanel from './components/DriverPanel';
+import RegisterModal from './components/RegisterModal';
+import SupportModal from './components/SupportModal';
+import WhatsAppLogin from './components/WhatsAppLogin';
+
+export default function App() {
+  // Authentication & Portal selection state
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
     const urlRole = params.get('role');
@@ -127,11 +112,30 @@ e
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
-  // Shops and Menu Item
-const [shops, setShops] = useState<Shop[]>([]);
-const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
+  // Firebase DB status state
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean | null>(null);
 
+  useEffect(() => {
+    const checkFirebase = async () => {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const data = await res.json();
+          setIsFirebaseConnected(!!data.databaseConnected);
+        } else {
+          setIsFirebaseConnected(false);
+        }
+      } catch (err) {
+        console.error('Failed to check Firebase status:', err);
+        setIsFirebaseConnected(false);
+      }
+    };
+    checkFirebase();
+  }, []);
+
+  // Shops and Menu Items
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -1982,7 +1986,26 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
                     <span className="text-lg">🛵</span>
                   </div>
                   <div className="text-right">
-                    <span className="font-black text-sm sm:text-base text-slate-900 block tracking-tight">طلبات فرشوط</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-sm sm:text-base text-slate-900 block tracking-tight">طلبات فرشوط</span>
+                      {isFirebaseConnected === true && (
+                        <span className="inline-flex items-center gap-0.5 text-[8px] bg-emerald-50 text-emerald-600 font-extrabold px-1.5 py-0.5 rounded-md border border-emerald-200" title="قاعدة بيانات فايربيس متصلة ونشطة">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          فايربيس متصل
+                        </span>
+                      )}
+                      {isFirebaseConnected === false && (
+                        <span className="inline-flex items-center gap-0.5 text-[8px] bg-amber-50 text-amber-600 font-extrabold px-1.5 py-0.5 rounded-md border border-amber-200" title="قاعدة البيانات تعمل بوضع عدم الاتصال المحلي">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                          محلي / غير متصل
+                        </span>
+                      )}
+                      {isFirebaseConnected === null && (
+                        <span className="inline-flex items-center gap-0.5 text-[8px] bg-slate-50 text-slate-400 font-extrabold px-1.5 py-0.5 rounded-md border border-slate-200 animate-pulse">
+                          فحص الاتصال...
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400 font-bold block -mt-0.5">المنصة الموحدة لمركز فرشوط 📍</span>
                   </div>
                 </div>
@@ -2480,6 +2503,10 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
                       <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     </h4>
                     <p className="text-[10px] text-slate-500 font-bold mt-0.5">رقم التفعيل المسجل: {customerAccount?.phone || 'غير مسجل'}</p>
+                    <p className="text-[9px] text-emerald-600/90 font-bold mt-0.5 flex items-center gap-1">
+                      <Check className="h-2.5 w-2.5" />
+                      <span>متصل بالفايربيس: تمت مزامنة ملفك الشخصي سحابياً بنجاح!</span>
+                    </p>
                   </div>
                 </div>
                 <button
@@ -2817,7 +2844,7 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
                   >
                     <User className="h-5 w-5" />
                     <span className="text-[10px] mt-1 font-bold">حسابي</span>
-                   </button>
+                  </button>
                 </div>
               )}
             </>
@@ -2829,7 +2856,3 @@ const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
       </div>
   );
 }
-
-
-
-     

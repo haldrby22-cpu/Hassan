@@ -225,19 +225,7 @@ app.get('/api/health', (req, res) => {
     provider: db ? 'Firebase Service Account' : 'None'
   });
 });
-app.get('/api/customers/all', async (req, res) => {
-  try {
-    const snapshot = await db.collection('customers').get();
-    const customers = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    res.json(customers);
-  } catch (error) {
-    console.error("خطأ في جلب بيانات Firestore:", error);
-    res.status(500).json({ error: 'Failed to fetch customers' });
-  }
-})
+
 // Vite/Static Setup
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
