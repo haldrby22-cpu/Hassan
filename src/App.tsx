@@ -1,4 +1,16 @@
-import { useState, useEffect } from 'react';
+import { SHOPS, MENU_ITEMS } from './data';
+import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode, InAppNotification } from './types';
+import ShopCard from './components/ShopCard';
+import ItemCard from './components/ItemCard';
+import Cart from './components/Cart';
+import OrderTracker from './components/OrderTracker';
+import OrderHistory from './components/OrderHistory';
+import AdminPanel from './components/AdminPanel';
+import MerchantPanel from './components/MerchantPanel';
+import DriverPanel from './components/DriverPanel';
+import RegisterModal from './components/RegisterModal';
+import SupportModal from './components/SupportModal';
+import WhatsAppLogin from './components/WhatsAppLogin';
 import {
   Search,
   ShoppingBag,
@@ -35,22 +47,30 @@ import {
   VolumeX
 } from 'lucide-react';
 
-import { SHOPS, MENU_ITEMS } from './data';
-import { Shop, MenuItem, CartItem, Order, CategoryType, OrderStatus, PromoCode, InAppNotification } from './types';
-import ShopCard from './components/ShopCard';
-import ItemCard from './components/ItemCard';
-import Cart from './components/Cart';
-import OrderTracker from './components/OrderTracker';
-import OrderHistory from './components/OrderHistory';
-import AdminPanel from './components/AdminPanel';
-import MerchantPanel from './components/MerchantPanel';
-import DriverPanel from './components/DriverPanel';
-import RegisterModal from './components/RegisterModal';
-import SupportModal from './components/SupportModal';
-import WhatsAppLogin from './components/WhatsAppLogin';
+export default function App() { // الدالة تبدأ هنا بشكل صحيح
+  
+  // 1. ضع كل الـ useState هنا في الأعلى
+  const [customers, setCustomers] = useState<any[]>([]);
+  // ... باقي الـ useState الخاصة بك
 
-export default function App() {
-  // Authentication & Portal selection state
+  // 2. ضع الـ useEffect هنا (داخل دالة App)
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const res = await fetch('/api/customers/all');
+        if (res.ok) {
+          const data = await res.json();
+          setCustomers(data);
+          console.log("تم تحميل العملاء بنجاح:", data);
+        }
+      } catch (error) {
+        console.error("خطأ أثناء جلب العملاء:", error);
+      }
+    }
+    loadCustomers();
+  }, []);
+}
+e
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
     const urlRole = params.get('role');
@@ -112,9 +132,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
-  // Shops and Menu Items
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  // Shops and Menu Item
+const [shops, setShops] = useState<Shop[]>([]);
+const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+const [customers, setCustomers] = useState<any[]>([]); // أضفته هنا
+
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
