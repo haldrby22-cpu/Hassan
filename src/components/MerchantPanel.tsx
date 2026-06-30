@@ -162,6 +162,9 @@ export default function MerchantPanel({
   const [itemImage, setItemImage] = useState('');
   const [itemRating, setItemRating] = useState('4.8');
   const [isPopular, setIsPopular] = useState(false);
+  const [isExclusiveOffer, setIsExclusiveOffer] = useState(false);
+  const [originalPriceInput, setOriginalPriceInput] = useState('');
+  const [offerDurationInput, setOfferDurationInput] = useState('120');
   const [itemError, setItemError] = useState('');
   const [itemSuccess, setItemSuccess] = useState('');
 
@@ -217,6 +220,23 @@ export default function MerchantPanel({
       return;
     }
 
+    let originalPrice: number | undefined = undefined;
+    let expiresAt: string | undefined = undefined;
+
+    if (isExclusiveOffer) {
+      if (!originalPriceInput.trim() || isNaN(parseFloat(originalPriceInput))) {
+        setItemError('الرجاء إدخال السعر الأصلي قبل الخصم لتفعيل العرض الحصري');
+        return;
+      }
+      originalPrice = parseFloat(originalPriceInput);
+      if (originalPrice <= parseFloat(itemPrice)) {
+        setItemError('السعر الأصلي يجب أن يكون أكبر من سعر العرض المخفض!');
+        return;
+      }
+      const duration = parseInt(offerDurationInput) || 120;
+      expiresAt = new Date(Date.now() + duration * 60 * 1000).toISOString();
+    }
+
     const imgUrl = itemImage.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
 
     const newItem: MenuItem = {
@@ -228,10 +248,12 @@ export default function MerchantPanel({
       image: imgUrl,
       rating: parseFloat(itemRating) || 4.8,
       popular: isPopular,
+      originalPrice,
+      expiresAt,
     };
 
     onAddMenuItem(newItem);
-    setItemSuccess(`تمت إضافة منتج "${newItem.name}" بنجاح!`);
+    setItemSuccess(isExclusiveOffer ? `تم نشر العرض الحصري المخفض لـ "${newItem.name}" بنجاح!` : `تمت إضافة منتج "${newItem.name}" بنجاح!`);
 
     // Reset Form
     setItemName('');
@@ -239,6 +261,9 @@ export default function MerchantPanel({
     setItemPrice('');
     setItemImage('');
     setIsPopular(false);
+    setIsExclusiveOffer(false);
+    setOriginalPriceInput('');
+    setOfferDurationInput('120');
   };
 
   // Toggle open / closed shop status
@@ -917,6 +942,48 @@ ${shops.map(shop => `- مطعم: ${shop.name} | كلمة المرور: ${shop.pa
                     <label htmlFor="isPopular" className="text-xs font-bold text-slate-600 cursor-pointer">
                       تمييز هذا المنتج كـ "أكثر طلباً 🔥"
                     </label>
+                  </div>
+
+                  <div className="space-y-3 bg-red-50/40 p-3.5 rounded-2xl border border-red-100/50">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isExclusiveOffer"
+                        checked={isExclusiveOffer}
+                        onChange={(e) => setIsExclusiveOffer(e.target.checked)}
+                        className="rounded border-slate-300 text-red-500 focus:ring-red-400 h-4 w-4"
+                      />
+                      <label htmlFor="isExclusiveOffer" className="text-xs font-black text-slate-700 cursor-pointer">
+                        🏷️ هل هذا عرض خصم حصري لفترة محدودة؟
+                      </label>
+                    </div>
+
+                    {isExclusiveOffer && (
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500">السعر الأصلي قبل الخصم *</label>
+                          <input
+                            type="text"
+                            value={originalPriceInput}
+                            onChange={(e) => setOriginalPriceInput(e.target.value)}
+                            placeholder="مثال: 165"
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-red-400 bg-white font-mono font-bold"
+                            required={isExclusiveOffer}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500">مدة صلاحية العرض (بالدقائق)</label>
+                          <input
+                            type="number"
+                            value={offerDurationInput}
+                            onChange={(e) => setOfferDurationInput(e.target.value)}
+                            placeholder="مثال: 120"
+                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-red-400 bg-white font-mono font-bold"
+                            required={isExclusiveOffer}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {itemError && (

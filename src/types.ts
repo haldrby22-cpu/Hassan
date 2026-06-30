@@ -26,6 +26,8 @@ export interface MenuItem {
   rating?: number;
   tags?: string[];
   popular?: boolean;
+  originalPrice?: number; // Price before discount (for exclusive offers)
+  expiresAt?: string; // Expiration timestamp ISO string
 }
 
 export interface CartItem {

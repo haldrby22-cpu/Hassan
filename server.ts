@@ -2,8 +2,8 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,38 +13,27 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Initialize Firebase Admin SDK
-let db: Firestore | null = null;
+// Initialize Firebase Web SDK for Server-Side proxy
+let db: any = null;
 try {
-  const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
-  
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-    if (credentials.private_key) {
-      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-    }
-    initializeApp({
-      credential: cert(credentials),
-      projectId: credentials.project_id
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const firebaseApp = initializeApp({
+      apiKey: config.apiKey,
+      authDomain: config.authDomain,
+      projectId: config.projectId,
+      storageBucket: config.storageBucket,
+      messagingSenderId: config.messagingSenderId,
+      appId: config.appId
     });
-    db = getFirestore();
-    console.log('Firebase Admin initialized with Environment variable Service Account.');
-  } else if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
-    initializeApp({
-      credential: cert(serviceAccount),
-      projectId: serviceAccount.project_id
-    });
-    db = getFirestore();
-    console.log('Firebase Admin initialized with local firebase-service-account.json.');
+    db = getFirestore(firebaseApp, config.firestoreDatabaseId || '(default)');
+    console.log('Firebase Web SDK initialized successfully on backend!');
   } else {
-    console.warn('WARNING: Firebase Service Account credentials not found. DB features will operate in offline/fallback mode.');
+    console.warn('WARNING: firebase-applet-config.json not found. DB features will operate in offline/fallback mode.');
   }
 } catch (error) {
-  console.error('Error initializing Firebase Admin SDK:', error);
+  console.error('Error initializing Firebase Web SDK on backend:', error);
 }
 
 // API Routes
@@ -60,9 +49,9 @@ app.post('/api/customers/get', async (req, res) => {
   }
 
   try {
-    const docRef = db.collection('customers').doc(phone.trim());
-    const docSnap = await docRef.get();
-    if (docSnap.exists) {
+    const docRef = doc(db, 'customers', phone.trim());
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
       return res.json(docSnap.data());
     }
     return res.json(null);
@@ -84,14 +73,14 @@ app.post('/api/customers/save', async (req, res) => {
   }
 
   try {
-    const docRef = db.collection('customers').doc(phone.trim());
+    const docRef = doc(db, 'customers', phone.trim());
     const customerData = {
       name: name.trim(),
       phone: phone.trim(),
       address: address.trim(),
       updatedAt: new Date().toISOString()
     };
-    await docRef.set(customerData, { merge: true });
+    await setDoc(docRef, customerData, { merge: true });
     return res.json({ success: true, customer: customerData });
   } catch (error: any) {
     console.error('Error saving customer to Firestore:', error);

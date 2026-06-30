@@ -48,6 +48,7 @@ import DriverPanel from './components/DriverPanel';
 import RegisterModal from './components/RegisterModal';
 import SupportModal from './components/SupportModal';
 import WhatsAppLogin from './components/WhatsAppLogin';
+import ExclusiveOffers from './components/ExclusiveOffers';
 
 export default function App() {
   // Authentication & Portal selection state
@@ -523,11 +524,21 @@ export default function App() {
       }
 
       const savedMenuItems = localStorage.getItem('talabat_menu_items');
-      if (savedMenuItems) {
-        setMenuItems(JSON.parse(savedMenuItems));
-      } else {
-        setMenuItems(MENU_ITEMS);
-      }
+      let loadedMenuItems = savedMenuItems ? JSON.parse(savedMenuItems) : MENU_ITEMS;
+      
+      // Ensure all exclusive offers have a valid expiresAt timestamp relative to current time
+      const now = Date.now();
+      loadedMenuItems = loadedMenuItems.map((item: any, index: number) => {
+        if (item.originalPrice && !item.expiresAt) {
+          const offsetHours = 1.5 + (index % 3);
+          return {
+            ...item,
+            expiresAt: new Date(now + offsetHours * 60 * 60 * 1000).toISOString()
+          };
+        }
+        return item;
+      });
+      setMenuItems(loadedMenuItems);
 
       const savedCart = localStorage.getItem('talabat_cart');
       if (savedCart) setCart(JSON.parse(savedCart));
@@ -2220,6 +2231,17 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+
+                {/* Exclusive Offers & Discounts Section */}
+                <ExclusiveOffers
+                  menuItems={menuItems}
+                  shops={shops}
+                  onAddToCart={handleAddToCart}
+                  onSelectShop={(shopId) => {
+                    setSelectedShopId(shopId);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
 
                 {/* Live Search and Filters */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
