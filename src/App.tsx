@@ -47,13 +47,8 @@ import {
   VolumeX
 } from 'lucide-react';
 
-export default function App() { // الدالة تبدأ هنا بشكل صحيح
-  
-  // 1. ضع كل الـ useState هنا في الأعلى
+export default function App() { 
   const [customers, setCustomers] = useState<any[]>([]);
-  // ... باقي الـ useState الخاصة بك
-
-  // 2. ضع الـ useEffect هنا (داخل دالة App)
   useEffect(() => {
     async function loadCustomers() {
       try {
